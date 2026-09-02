@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.DS_Store
+*.log
+
+# Pasta de download bruto do Kenney (o jogo só usa as imagens copiadas para public/assets)
+Kenney/

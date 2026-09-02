@@ -1,0 +1,420 @@
+/* ===== Variáveis de cor e tamanho ===== */
+:root {
+  --fundo: #140a33;
+  --fundo-cartao: rgba(42, 23, 88, 0.72);
+  --texto: #f8f5ff;
+  --texto-suave: #ffd8a8;
+  --primaria: #845ef7;
+  --primaria-forte: #7048e8;
+  --acento: #f06595;
+  --ciano: #4dd0e1;
+  --foco: #ffd43b;
+  --borda: rgba(132, 94, 247, 0.45);
+  --raio: 20px;
+  --raio-grande: 28px;
+  --fonte-base: 18px;
+  --sombra-cartao: 0 24px 60px rgba(6, 2, 24, 0.55);
+  --brilho-primaria: 0 8px 26px rgba(240, 101, 149, 0.45);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  font-family: "Fredoka", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--texto);
+  font-size: var(--fonte-base);
+  line-height: 1.5;
+  background:
+    radial-gradient(circle at 18% 12%, #4a2288 0%, rgba(74, 34, 136, 0) 40%),
+    radial-gradient(circle at 85% 20%, #1b6d8f 0%, rgba(27, 109, 143, 0) 38%),
+    radial-gradient(ellipse at 50% 120%, #3b1a6b 0%, #140a33 45%, #080617 100%);
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+
+/* ===== Campo de estrelas + nebulosa (decorativo) ===== */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+/* Estrelas: pontos brancos espalhados que piscam suavemente */
+body::before {
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 22%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 28% 68%, #fff, transparent),
+    radial-gradient(2px 2px at 47% 15%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 63% 82%, #fff, transparent),
+    radial-gradient(2px 2px at 78% 35%, #ffe9b8, transparent),
+    radial-gradient(1.5px 1.5px at 90% 60%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 8% 88%, #fff, transparent),
+    radial-gradient(2px 2px at 55% 48%, #cfe8ff, transparent),
+    radial-gradient(1.5px 1.5px at 35% 40%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 72% 8%, #fff, transparent);
+  background-repeat: no-repeat;
+  animation: piscar 4s ease-in-out infinite alternate;
+}
+/* Um brilho de nebulosa que gira bem devagar */
+body::after {
+  background:
+    radial-gradient(closest-side, rgba(132, 94, 247, 0.16), transparent 70%) 20% 30% / 55vmax 55vmax,
+    radial-gradient(closest-side, rgba(77, 208, 225, 0.12), transparent 70%) 82% 72% / 45vmax 45vmax;
+  background-repeat: no-repeat;
+  animation: flutuar-nebulosa 26s ease-in-out infinite alternate;
+}
+
+@keyframes piscar {
+  from { opacity: 0.45; }
+  to   { opacity: 1; }
+}
+@keyframes flutuar-nebulosa {
+  from { transform: translate3d(-2%, -1%, 0) scale(1); }
+  to   { transform: translate3d(3%, 2%, 0) scale(1.08); }
+}
+
+/* ===== Acessibilidade ===== */
+body.fonte-grande { --fonte-base: 22px; }
+
+body.contraste-alto {
+  --fundo: #000000;
+  --fundo-cartao: #000000;
+  --texto: #ffffff;
+  --texto-suave: #ffff00;
+  --primaria: #ffff00;
+  --primaria-forte: #ffd400;
+  --acento: #ffff00;
+  --ciano: #ffff00;
+  --borda: #ffffff;
+  --foco: #ffff00;
+  --sombra-cartao: none;
+  --brilho-primaria: none;
+  background: #000000;
+}
+/* Sem enfeites que atrapalhem o contraste */
+body.contraste-alto::before,
+body.contraste-alto::after { display: none; }
+body.contraste-alto .tela { backdrop-filter: none; }
+body.contraste-alto .titulo { -webkit-text-fill-color: #ffff00; color: #ffff00; }
+body.contraste-alto .botao-primario { color: #000000; background: #ffff00; }
+
+:focus-visible {
+  outline: 4px solid var(--foco);
+  outline-offset: 3px;
+}
+
+/* ===== Layout ===== */
+.app {
+  position: relative;
+  z-index: 1;
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.tela {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  background: var(--fundo-cartao);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-grande);
+  padding: 34px 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+  box-shadow: var(--sombra-cartao);
+  animation: surgir 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* Borda superior com um fiozinho de luz */
+.tela::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(132, 94, 247, 0.9), rgba(240, 101, 149, 0.5) 40%, transparent 70%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+body.contraste-alto .tela::before { display: none; }
+
+@keyframes surgir {
+  from { opacity: 0; transform: translateY(18px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.titulo {
+  margin: 0;
+  font-size: 2em;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: linear-gradient(120deg, #ffffff 0%, #ffd8a8 45%, #f7a6c8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 12px rgba(240, 101, 149, 0.35));
+}
+.subtitulo {
+  margin: 0;
+  color: var(--texto-suave);
+  max-width: 42ch;
+}
+
+/* Saudação em forma de "pílula" */
+.ola {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: #ffffff;
+  padding: 8px 18px 8px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+}
+
+/* ===== Robô-herói (menu) ===== */
+.robo-heroi {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  margin-top: 4px;
+  animation: flutuar-robo 4.5s ease-in-out infinite;
+}
+.robo-heroi::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  width: 90px;
+  height: 16px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse, rgba(132, 94, 247, 0.55), transparent 70%);
+  filter: blur(3px);
+  animation: sombra-robo 4.5s ease-in-out infinite;
+}
+@keyframes flutuar-robo {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+@keyframes sombra-robo {
+  0%, 100% { transform: translateX(-50%) scale(1);   opacity: 0.6; }
+  50%      { transform: translateX(-50%) scale(0.8); opacity: 0.35; }
+}
+
+/* ===== Botões ===== */
+.botoes-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 340px;
+}
+.botoes-linha {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.botao {
+  position: relative;
+  font-family: inherit;
+  font-size: 1.05em;
+  font-weight: 600;
+  padding: 15px 26px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--raio);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--texto);
+  cursor: pointer;
+  min-height: 54px;
+  overflow: hidden;
+  transition: transform 0.1s ease, filter 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+.botao:hover {
+  filter: brightness(1.08);
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+}
+.botao:active { transform: translateY(0) scale(0.97); }
+
+.botao-primario {
+  background: linear-gradient(135deg, #845ef7 0%, #f06595 100%);
+  color: #fff;
+  font-size: 1.25em;
+  border: none;
+  box-shadow: var(--brilho-primaria);
+}
+.botao-primario:hover {
+  box-shadow: 0 12px 34px rgba(240, 101, 149, 0.55);
+}
+/* Brilho que desliza sobre o botão principal ao passar o mouse */
+.botao-primario::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.5s ease;
+}
+.botao-primario:hover::after { left: 130%; }
+
+.botao-audio {
+  background: transparent;
+  border: 2px solid var(--foco);
+  color: var(--foco);
+}
+.botao-audio:hover { background: rgba(255, 212, 59, 0.12); }
+
+/* ===== Avatar (robôs) ===== */
+.grade-avatares {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.avatar-opcao {
+  padding: 8px;
+  border-radius: var(--raio);
+  border: 3px solid transparent;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  line-height: 0;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+.avatar-opcao:hover { transform: translateY(-4px) scale(1.06); }
+.avatar-opcao.selecionado {
+  border-color: var(--foco);
+  background: rgba(255, 212, 59, 0.18);
+  box-shadow: 0 0 0 4px rgba(255, 212, 59, 0.18), 0 8px 22px rgba(255, 212, 59, 0.25);
+}
+
+/* ===== Campos ===== */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  width: 100%;
+  max-width: 340px;
+  font-weight: 500;
+}
+.campo input {
+  font-family: inherit;
+  font-size: 1em;
+  padding: 14px 16px;
+  border-radius: var(--raio);
+  border: 2px solid var(--borda);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--texto);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.campo input::placeholder { color: rgba(248, 245, 255, 0.5); }
+.campo input:focus {
+  outline: none;
+  border-color: var(--primaria);
+  box-shadow: 0 0 0 4px rgba(132, 94, 247, 0.3);
+}
+
+.opcao-switch {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 1.1em;
+  width: 100%;
+  max-width: 340px;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.opcao-switch:hover { background: rgba(255, 255, 255, 0.1); }
+.opcao-switch input { width: 24px; height: 24px; accent-color: var(--primaria); cursor: pointer; flex-shrink: 0; }
+
+/* Texto da opção de narração, com o ícone à esquerda */
+.opcao-narracao-texto {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+.icone-narracao { font-size: 1.4em; line-height: 1; }
+.opcao-narracao { max-width: 340px; }
+
+/* Barra com os botões de áudio dentro do jogo */
+.barra-audio {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+.botao-audio-mini {
+  font-size: 0.95em;
+  padding: 10px 16px;
+  min-height: 44px;
+  border: 2px solid var(--borda);
+  background: rgba(255, 255, 255, 0.06);
+  opacity: 0.7;
+}
+.botao-audio-mini.ativo {
+  opacity: 1;
+  border-color: var(--foco);
+  color: var(--foco);
+  background: rgba(255, 212, 59, 0.12);
+}
+
+.texto-instrucoes {
+  text-align: left;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 18px 20px;
+  max-width: 56ch;
+}
+
+/* ===== Jogo (canvas Phaser) ===== */
+.tela-jogo { max-width: 900px; }
+.canvas-jogo { width: 100%; }
+.canvas-jogo canvas {
+  width: 100% !important;
+  height: auto !important;
+  border-radius: var(--raio);
+  box-shadow: 0 16px 40px rgba(6, 2, 24, 0.5);
+}
+
+/* ===== Celular ===== */
+@media (max-width: 480px) {
+  .tela { padding: 22px 18px; }
+  .titulo { font-size: 1.55em; }
+  .app { padding: 16px 12px; }
+}
+
+/* ===== Respeita quem prefere menos movimento ===== */
+@media (prefers-reduced-motion: reduce) {
+  body::before, body::after,
+  .tela, .robo-heroi, .robo-heroi::after,
+  .botao-primario::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
