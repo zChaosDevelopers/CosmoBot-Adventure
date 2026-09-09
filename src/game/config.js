@@ -36,6 +36,15 @@ export function criarConfig(parent, dados) {
     width: 800,
     height: 600,
     backgroundColor: "#0b1120",
+    // Desempenho: prioriza a GPU dedicada, arredonda pixels (desenho mais nítido
+    // e barato) e limita a taxa de quadros para não sobrecarregar o aparelho.
+    render: {
+      powerPreference: "high-performance",
+      antialias: true,
+      roundPixels: true,
+    },
+    fps: { target: 60, min: 30 },
+    disableContextMenu: true,
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,

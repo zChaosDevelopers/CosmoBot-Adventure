@@ -62,7 +62,7 @@ export default class FaseBase extends Phaser.Scene {
         fontSize: "22px",
         color: "#ffffff",
         align: "center",
-        wordWrap: { width: this.scale.width - 120 },
+        wordWrap: { width: this.scale.width - 160 },
       })
       .setOrigin(0.5);
     this.grupo.add(enunciado);
@@ -233,5 +233,35 @@ export default class FaseBase extends Phaser.Scene {
 
   atualizarFoco() {
     this.botoes.forEach((b, i) => b.setFoco(i === this.focoIndex));
+  }
+
+  // ===== Suporte a ARRASTAR itens (fases manipulativas) =====
+  // Liga os eventos de arraste UMA vez por cena. Cada fase define
+  // this.aoSoltarItem(objeto, pointer) para decidir onde o item cai.
+  prepararArraste() {
+    if (this._arrastePronto) return;
+    this._arrastePronto = true;
+    this.input.on("dragstart", (p, obj) => {
+      obj._escala = obj.scale;
+      obj.setScale(obj.scale * 1.2);
+      this.children.bringToTop(obj);
+    });
+    this.input.on("drag", (p, obj, dx, dy) => {
+      obj.x = dx;
+      obj.y = dy;
+    });
+    this.input.on("dragend", (p, obj) => {
+      obj.setScale(obj._escala ?? 1);
+      this.aoSoltarItem?.(obj, p);
+    });
+  }
+
+  // Retorna a zona (retângulo {x, y (centro), w, h}) que contém o ponto, ou null.
+  zonaNoPonto(zonas, px, py) {
+    return (
+      zonas.find(
+        (z) => px >= z.x - z.w / 2 && px <= z.x + z.w / 2 && py >= z.y - z.h / 2 && py <= z.y + z.h / 2
+      ) || null
+    );
   }
 }

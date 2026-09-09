@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.2.0",
   "type": "module",
-  "description": "Aventuras do CosmoBot - jogo educativo de matemática (7 a 10 anos) com 5 planetas: contagem, soma, subtração, multiplicação e divisão",
+  "description": "Aventuras do CosmoBot - jogo educativo de matemática (6 a 10 anos) com 5 etapas manipuláveis: contagem, soma, subtração, multiplicação e divisão",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

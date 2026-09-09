@@ -9,7 +9,7 @@ export const fase02 = {
   cor: "#51cf66",
   tipoPuzzle: "soma",
   dificuldade: 2,
-  enunciado: "Some as peças das duas caixas para achar o código da comporta!",
+  enunciado: "Junte as peças das duas caixas no núcleo para achar o total!",
   tarefaOk: "Comporta aberta! 🚪",
-  gerar: { rodadas: 3, min: 2, max: 9 },
+  gerar: { rodadas: 3, min: 2, max: 7 },
 };

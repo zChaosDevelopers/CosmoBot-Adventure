@@ -10,7 +10,7 @@ export const fase03 = {
   cor: "#ff922b",
   tipoPuzzle: "subtracao",
   dificuldade: 3,
-  enunciado: "Algumas células descarregaram. Quantas ainda têm carga?",
+  enunciado: "Descarregue as células pedidas e veja quantas ainda têm carga!",
   tarefaOk: "Baterias prontas! 🔋",
-  gerar: { rodadas: 3, min: 5, max: 12 },
+  gerar: { rodadas: 3, min: 5, max: 10 },
 };

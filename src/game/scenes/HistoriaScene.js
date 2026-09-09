@@ -38,28 +38,31 @@ export default class HistoriaScene extends Phaser.Scene {
     });
 
     this.add
-      .text(width / 2, 258, "Aventuras do CosmoBot", {
+      .text(width / 2, 234, "Aventuras do CosmoBot", {
         fontFamily: TEMA.fonte,
-        fontSize: "34px",
+        fontSize: "32px",
         color: "#ffd8a8",
       })
       .setOrigin(0.5);
 
-    // Painel da história.
+    // Painel da história (posicionado ABAIXO do título, com o texto centrado
+    // dentro dele — antes o bloco de texto subia e encostava no título).
+    const painelTopo = 272;
+    const painelAltura = 210;
     const painel = this.add.graphics();
     painel.fillStyle(0x0b1120, 0.55);
     painel.lineStyle(2, TEMA.foco, 0.4);
-    painel.fillRoundedRect(width / 2 - 320, 300, 640, 168, 18);
-    painel.strokeRoundedRect(width / 2 - 320, 300, 640, 168, 18);
+    painel.fillRoundedRect(width / 2 - 320, painelTopo, 640, painelAltura, 18);
+    painel.strokeRoundedRect(width / 2 - 320, painelTopo, 640, painelAltura, 18);
 
     const texto = this.add
-      .text(width / 2, 384, HISTORIA.join("\n\n"), {
+      .text(width / 2, painelTopo + painelAltura / 2, HISTORIA.join("\n\n"), {
         fontFamily: TEMA.fonte,
-        fontSize: "20px",
+        fontSize: "19px",
         color: "#ffffff",
         align: "center",
-        lineSpacing: 6,
-        wordWrap: { width: 600 },
+        lineSpacing: 4,
+        wordWrap: { width: 588 },
       })
       .setOrigin(0.5);
     texto.setAlpha(0);

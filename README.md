@@ -1,6 +1,6 @@
 # Aventuras do CosmoBot 🤖🚀
 
-Jogo educativo de **matemática** para crianças de **7 a 10 anos**.
+Jogo educativo de **matemática** para crianças de **6 a 10 anos**.
 O CosmoBot é um robozinho explorador cuja nave perdeu energia numa chuva de
 meteoros. Para voltar para casa, ele viaja por **5 planetas**, e em cada um há
 um desafio de matemática (com dificuldade crescente) para recarregar os cristais.

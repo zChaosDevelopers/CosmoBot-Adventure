@@ -42,23 +42,21 @@ export function desenharFundo(scene) {
   g.fillStyle(0xcc5de8, 0.1);
   g.fillCircle(width * 0.6, height * 0.78, 220);
 
+  // Estrelas: desenhadas TODAS em um único Graphics (um só objeto, um só draw)
+  // em vez de dezenas de círculos com uma animação cada. Isso reduz muito o
+  // custo por quadro — era uma das causas do jogo travar/ficar lento. Uma
+  // única animação suave de brilho vale para o céu inteiro.
   const coresEstrela = [0xffffff, 0xffd43b, 0x99e9f2, 0xffa8a8];
-  for (let i = 0; i < 80; i++) {
-    const s = scene.add.circle(
+  const ceu = scene.add.graphics();
+  for (let i = 0; i < 60; i++) {
+    ceu.fillStyle(coresEstrela[i % coresEstrela.length], Phaser.Math.FloatBetween(0.45, 0.95));
+    ceu.fillCircle(
       Phaser.Math.Between(0, width),
       Phaser.Math.Between(0, height),
-      Phaser.Math.Between(1, 2),
-      coresEstrela[i % coresEstrela.length],
-      Phaser.Math.FloatBetween(0.4, 0.95)
+      Phaser.Math.Between(1, 2)
     );
-    scene.tweens.add({
-      targets: s,
-      alpha: 0.15,
-      duration: Phaser.Math.Between(900, 2200),
-      yoyo: true,
-      repeat: -1,
-    });
   }
+  scene.tweens.add({ targets: ceu, alpha: 0.55, duration: 1800, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
 
   if (scene.textures.exists("planeta")) {
     const p = scene.add.image(width - 90, 100, "planeta").setScale(1.1).setAlpha(0.9);
@@ -218,12 +216,24 @@ export function criarBotao(scene, x, y, rotulo, aoClicar, opts = {}) {
     scene.tweens.add({ targets: visual, scaleX: 0.9, scaleY: 0.9, duration: 80, yoyo: true });
   };
 
+  // Confiabilidade do clique/toque: agimos no PRESSIONAR (pointerdown), não no
+  // soltar. O "soltar" sobre o objeto (pointerup) às vezes não dispara quando o
+  // layout acabou de mudar (fontes, teclado do celular, recálculo de escala) ou
+  // quando o dedo escorrega um pixel — era o motivo dos botões "não apertarem
+  // direito". No pointerdown a resposta é imediata e nunca se perde.
+  let jaAcionou = false;
+  const acionar = () => {
+    if (jaAcionou) return;
+    jaAcionou = true;
+    apertar();
+    aoClicar();
+    // Rearma logo em seguida para permitir novos toques na mesma cena.
+    scene.time?.delayedCall(220, () => (jaAcionou = false));
+  };
+
   c.on("pointerover", () => desenhar(true));
   c.on("pointerout", () => desenhar(false));
-  // Feedback no toque; ação no soltar (pointerup) — comportamento clássico de
-  // clique, mais tolerante a pequenos movimentos do dedo/mouse.
-  c.on("pointerdown", () => apertar());
-  c.on("pointerup", () => aoClicar());
+  c.on("pointerdown", () => acionar());
 
   c.setFoco = (f) => desenhar(f);
   c.apertar = apertar;

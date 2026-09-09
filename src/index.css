@@ -122,8 +122,8 @@ body.contraste-alto .botao-primario { color: #000000; background: #ffff00; }
   width: 100%;
   max-width: 720px;
   background: var(--fundo-cartao);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--borda);
   border-radius: var(--raio-grande);
   padding: 34px 32px;
@@ -393,7 +393,14 @@ body.contraste-alto .tela::before { display: none; }
 }
 
 /* ===== Jogo (canvas Phaser) ===== */
-.tela-jogo { max-width: 900px; }
+/* O canvas do Phaser cobre quase todo o cartão, então dispensamos o desfoque
+   de fundo aqui (é caro e disputa GPU com o jogo — deixava a tela travando). */
+.tela-jogo {
+  max-width: 900px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgba(20, 10, 51, 0.92);
+}
 .canvas-jogo { width: 100%; }
 .canvas-jogo canvas {
   width: 100% !important;

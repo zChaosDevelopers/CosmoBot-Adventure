@@ -10,7 +10,7 @@ export const fase04 = {
   cor: "#ff6b6b",
   tipoPuzzle: "multiplicacao",
   dificuldade: 4,
-  enunciado: "Fileiras iguais de células nos motores. Quantas há ao todo?",
+  enunciado: "Encha cada motor com a mesma quantidade e descubra o total!",
   tarefaOk: "Motores ligados! 🚀",
-  gerar: { rodadas: 3, maxGrupos: 4, maxPorGrupo: 5 },
+  gerar: { rodadas: 3, maxGrupos: 3, maxPorGrupo: 4 },
 };
