@@ -37,28 +37,19 @@ export default class SomaScene extends FaseBase {
     this.rodada = rodada;
     const total = rodada.quantidade; // a + b
 
-    const instr = this.add
-      .text(centro, 150, "Junte as peças das duas caixas no núcleo. Quanto dá ao todo?", {
-        fontFamily: TEMA.fonte,
-        fontSize: "17px",
-        color: "#ffd8a8",
-        align: "center",
-        wordWrap: { width: this.scale.width - 120 },
-      })
-      .setOrigin(0.5);
-    this.grupo.add(instr);
-
     // ===== Duas caixas de peças (grupos a juntar) =====
+    // Ancoradas em baseY: nunca ficam "coladas" no enunciado. As próprias
+    // caixas (Caixa A / Caixa B) já dizem o que fazer — sem frase repetida.
     const boxAx = centro - 175;
     const boxBx = centro + 175;
-    const boxY = 226;
+    const boxY = this.baseY + 78;
     this.grupo.add(desenharCaixa(this, boxAx, boxY, 150, 96, "#22d3ee", `Caixa A: ${rodada.a}`));
     this.grupo.add(desenharCaixa(this, boxBx, boxY, 150, 96, "#51cf66", `Caixa B: ${rodada.b}`));
 
     this.criarPecasNaCaixa(boxAx, boxY, rodada.a, 0x22d3ee);
     this.criarPecasNaCaixa(boxBx, boxY, rodada.b, 0x51cf66);
 
-    // Sinais + e = ? para ligar a ação ao símbolo.
+    // Sinal + para ligar a ação ao símbolo.
     const maisSinal = this.add
       .text(centro, boxY, "+", { fontFamily: TEMA.fonte, fontSize: "34px", color: "#ffd43b" })
       .setOrigin(0.5);
@@ -67,7 +58,7 @@ export default class SomaScene extends FaseBase {
     // ===== Núcleo (zona única onde as peças se juntam) =====
     const nucW = 220;
     const nucH = 118;
-    const nucY = 396;
+    const nucY = boxY + 156;
     this.grupo.add(desenharCaixa(this, centro, nucY, nucW, nucH, "#ffd43b", "⚡ Núcleo de energia"));
     this.nucleo = { x: centro, y: nucY, w: nucW, h: nucH, itens: [] };
 

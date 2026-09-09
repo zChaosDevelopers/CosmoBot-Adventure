@@ -33,39 +33,52 @@ export default class FaseBase extends Phaser.Scene {
     this.alvoNave = this.tira.alvoAtual || { x: this.scale.width / 2, y: 24 };
   }
 
-  // ===== Cabeçalho (etapa + rodada + enunciado). Retorna o X central. =====
+  // ===== Cabeçalho (etapa + rodada + enunciado). =====
+  // Desenha um bloco de topo bem espaçado e define `this.baseY`: a linha a partir
+  // da qual cada fase deve começar a desenhar seu conteúdo (com folga garantida,
+  // sem "colar" no texto — mesmo quando o enunciado quebra em duas linhas).
+  // Retorna o X central por compatibilidade com as cenas.
   desenharCabecalho() {
     const centro = this.scale.width / 2;
 
+    // Linha 1 (âmbar): etapa e módulo.
     const etapa = this.add
       .text(
         centro,
-        62,
+        56,
         `Etapa ${this.indiceFase + 1} de ${this.totalFases}  •  ${this.fase.modulo}`,
-        { fontFamily: TEMA.fonte, fontSize: "19px", color: "#ffd8a8" }
+        { fontFamily: TEMA.fonte, fontSize: "18px", color: "#ffd8a8" }
       )
       .setOrigin(0.5);
     this.grupo.add(etapa);
 
+    // Linha 2 (discreta): em qual desafio da etapa a criança está.
     const rod = this.add
-      .text(centro, 88, `Desafio ${this.rodadaAtual + 1} de ${this.rodadas.length}`, {
+      .text(centro, 80, `Desafio ${this.rodadaAtual + 1} de ${this.rodadas.length}`, {
         fontFamily: TEMA.fonte,
-        fontSize: "15px",
+        fontSize: "14px",
         color: "#94a3b8",
       })
       .setOrigin(0.5);
     this.grupo.add(rod);
 
+    // Enunciado: a ÚNICA instrução em destaque (as cenas não repetem mais isto).
+    // Origem no topo (0.5, 0) para medir a altura real e ancorar o conteúdo.
     const enunciado = this.add
-      .text(centro, 120, this.fase.enunciado, {
+      .text(centro, 108, this.fase.enunciado, {
         fontFamily: TEMA.fonte,
-        fontSize: "22px",
+        fontSize: "21px",
         color: "#ffffff",
         align: "center",
-        wordWrap: { width: this.scale.width - 160 },
+        fontStyle: "bold",
+        lineSpacing: 4,
+        wordWrap: { width: this.scale.width - 140 },
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5, 0);
     this.grupo.add(enunciado);
+
+    // Conteúdo da fase começa 30px abaixo do fim do enunciado.
+    this.baseY = Math.round(enunciado.y + enunciado.height + 30);
 
     return centro;
   }

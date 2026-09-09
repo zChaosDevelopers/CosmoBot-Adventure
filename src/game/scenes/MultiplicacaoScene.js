@@ -41,22 +41,13 @@ export default class MultiplicacaoScene extends FaseBase {
     this.rodada = rodada;
     const total = rodada.quantidade; // grupos × porGrupo
 
-    const instr = this.add
-      .text(centro, 150, `Coloque ${rodada.porGrupo} células em CADA motor. Quantas ao todo?`, {
-        fontFamily: TEMA.fonte,
-        fontSize: "17px",
-        color: "#ffd8a8",
-        align: "center",
-        wordWrap: { width: this.scale.width - 120 },
-      })
-      .setOrigin(0.5);
-    this.grupo.add(instr);
-
+    // Linha-guia única (sem repetir a pergunta do enunciado): diz a quantidade
+    // por motor E o total disponível, que é a informação NOVA desta rodada.
     const rot = this.add
-      .text(centro, 176, `🔩 Células disponíveis: ${total}`, {
+      .text(centro, this.baseY, `🔩 ${rodada.porGrupo} em cada motor  •  ${total} células disponíveis`, {
         fontFamily: TEMA.fonte,
         fontSize: "16px",
-        color: "#e2e8f0",
+        color: "#ffd8a8",
       })
       .setOrigin(0.5);
     this.grupo.add(rot);
@@ -64,7 +55,7 @@ export default class MultiplicacaoScene extends FaseBase {
     // ===== Reservatório de células (arrastáveis) =====
     const rcols = Math.min(8, total);
     const rpasso = 40;
-    const rtopY = 210;
+    const rtopY = this.baseY + 44;
     const rinicioX = centro - ((rcols - 1) * rpasso) / 2;
     for (let i = 0; i < total; i++) {
       const col = i % rcols;
@@ -82,7 +73,7 @@ export default class MultiplicacaoScene extends FaseBase {
     const gap = Math.min(52, (this.scale.width - 80 - n * mW) / Math.max(1, n - 1));
     const totalW = n * mW + (n - 1) * gap;
     const startX = centro - totalW / 2 + mW / 2;
-    const mY = 392;
+    const mY = this.baseY + 224;
 
     for (let k = 0; k < n; k++) {
       const mx = startX + k * (mW + gap);

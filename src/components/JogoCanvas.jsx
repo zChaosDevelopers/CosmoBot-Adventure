@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Phaser from "phaser";
 import { criarConfig } from "../game/config.js";
 import { useJogador } from "../context/JogadorContext.jsx";
@@ -34,6 +34,10 @@ async function assetsDisponiveis() {
 export default function JogoCanvas({ irPara }) {
   const containerRef = useRef(null);
   const jogoRef = useRef(null);
+  // Pré-visualização em "tela de celular" (útil para testar o layout mobile
+  // sem sair do computador). Só muda a largura do quadro — o Phaser (Scale.FIT)
+  // reescala o jogo sozinho e o ResizeObserver reajusta a área de clique.
+  const [mobile, setMobile] = useState(false);
   const { apelido, avatar, narracao, setNarracao, somLigado, setSomLigado } = useJogador();
 
   // Ao sair da tela do jogo, garante que nenhuma narração continue tocando.
@@ -97,6 +101,14 @@ export default function JogoCanvas({ irPara }) {
     };
   }, [apelido, avatar]);
 
+  // Ao trocar entre celular/computador, o tamanho do canvas muda: reajusta a
+  // escala e o cache de posição do Phaser para os cliques continuarem certeiros.
+  useEffect(() => {
+    const jogo = jogoRef.current;
+    if (!jogo) return;
+    [60, 260, 520].forEach((ms) => setTimeout(() => jogo?.scale?.refresh(), ms));
+  }, [mobile]);
+
   return (
     <section className="tela tela-jogo" aria-label="Jogo">
       <div className="barra-audio" role="group" aria-label="Controles de áudio">
@@ -121,14 +133,25 @@ export default function JogoCanvas({ irPara }) {
         >
           🦻 Narração
         </button>
+        <button
+          type="button"
+          className={"botao botao-audio-mini" + (mobile ? " ativo" : "")}
+          aria-pressed={mobile}
+          onClick={() => setMobile((m) => !m)}
+          title="Pré-visualizar como fica em uma tela de celular"
+        >
+          {mobile ? "🖥️ Ver no computador" : "📱 Ver no celular"}
+        </button>
       </div>
 
-      <div
-        ref={containerRef}
-        className="canvas-jogo"
-        role="application"
-        aria-label="Área do jogo da estação espacial"
-      />
+      <div className={"moldura-canvas" + (mobile ? " mobile" : "")}>
+        <div
+          ref={containerRef}
+          className="canvas-jogo"
+          role="application"
+          aria-label="Área do jogo da estação espacial"
+        />
+      </div>
       <button className="botao" onClick={() => irPara("menu")}>
         Voltar ao menu
       </button>

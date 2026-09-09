@@ -37,30 +37,22 @@ export default class SubtracaoScene extends FaseBase {
     const rodada = this.rodadas[this.rodadaAtual];
     this.rodada = rodada;
 
-    const instr = this.add
-      .text(centro, 150, `Descarregue ${rodada.b} células. Quantas ainda têm carga?`, {
-        fontFamily: TEMA.fonte,
-        fontSize: "17px",
-        color: "#ffd8a8",
-        align: "center",
-        wordWrap: { width: this.scale.width - 120 },
-      })
-      .setOrigin(0.5);
-    this.grupo.add(instr);
-
+    // Linha-guia única (o enunciado já pede a ação): quantas descarregar e a
+    // carga inicial da bateria — a informação NOVA desta rodada.
     const rot = this.add
-      .text(centro, 178, `🔋 Bateria: ${rodada.a} células carregadas`, {
-        fontFamily: TEMA.fonte,
-        fontSize: "16px",
-        color: "#e2e8f0",
-      })
+      .text(
+        centro,
+        this.baseY,
+        `🔋 Bateria: ${rodada.a} carregadas  •  descarregue ${rodada.b}`,
+        { fontFamily: TEMA.fonte, fontSize: "16px", color: "#ffd8a8" }
+      )
       .setOrigin(0.5);
     this.grupo.add(rot);
 
     // ===== Células carregadas (arrastáveis) =====
     const cols = Math.min(6, rodada.a);
     const passo = 48;
-    const topY = 218;
+    const topY = this.baseY + 52;
     const inicioX = centro - ((cols - 1) * passo) / 2;
     for (let i = 0; i < rodada.a; i++) {
       const col = i % 6;
@@ -74,7 +66,7 @@ export default class SubtracaoScene extends FaseBase {
     // ===== Zona de descarte (uma só) =====
     const binW = Math.min(360, this.scale.width - 140);
     const binH = 96;
-    const binY = 384;
+    const binY = this.baseY + 214;
     this.grupo.add(desenharCaixa(this, centro, binY, binW, binH, "#ff6b6b", "🗑️ Descarregar aqui"));
     this.bin = { x: centro, y: binY, w: binW, h: binH, itens: [] };
 

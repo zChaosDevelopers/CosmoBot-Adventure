@@ -42,32 +42,22 @@ export default class DivisaoScene extends FaseBase {
     const rodada = this.rodadas[this.rodadaAtual];
     this.rodada = rodada;
 
-    // Instrução da manipulação.
-    const instr = this.add
-      .text(centro, 150, "Arraste o combustível e deixe TODOS os tanques iguais!", {
-        fontFamily: TEMA.fonte,
-        fontSize: "17px",
-        color: "#ffd8a8",
-        align: "center",
-        wordWrap: { width: this.scale.width - 120 },
-      })
-      .setOrigin(0.5);
-    this.grupo.add(instr);
-
-    // Rótulo do reservatório.
+    // Linha-guia única (o enunciado já pede a ação): quantidade de combustível
+    // e em quantos tanques repartir — a informação NOVA desta rodada.
     const rot = this.add
-      .text(centro, 176, `⛽ Combustível: ${rodada.total}`, {
-        fontFamily: TEMA.fonte,
-        fontSize: "16px",
-        color: "#e2e8f0",
-      })
+      .text(
+        centro,
+        this.baseY,
+        `⛽ Combustível: ${rodada.total}  •  ${rodada.divisor} tanques iguais`,
+        { fontFamily: TEMA.fonte, fontSize: "16px", color: "#ffd8a8" }
+      )
       .setOrigin(0.5);
     this.grupo.add(rot);
 
     // ===== Reservatório: as gotas de combustível (arrastáveis) =====
     const rcols = Math.min(8, rodada.total);
     const rpasso = 40;
-    const rtopY = 210;
+    const rtopY = this.baseY + 44;
     const rinicioX = centro - ((rcols - 1) * rpasso) / 2;
     for (let i = 0; i < rodada.total; i++) {
       const col = i % rcols;
@@ -85,7 +75,7 @@ export default class DivisaoScene extends FaseBase {
     const gap = Math.min(52, (this.scale.width - 80 - div * tankW) / Math.max(1, div - 1));
     const totalW = div * tankW + (div - 1) * gap;
     const startX = centro - totalW / 2 + tankW / 2;
-    const tankY = 392;
+    const tankY = this.baseY + 224;
 
     for (let k = 0; k < div; k++) {
       const tx = startX + k * (tankW + gap);

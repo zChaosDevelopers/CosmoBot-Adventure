@@ -34,7 +34,7 @@ export default class ContagemScene extends FaseBase {
     const passo = 76;
     const largura = cols * passo + 40;
     const altura = linhas * 72 + 30;
-    const topo = 168;
+    const topo = this.baseY + 62;
     const painel = this.add.graphics();
     painel.fillStyle(0x0f172a, 0.55);
     painel.lineStyle(3, 0x475569, 0.9);
