@@ -1,12 +1,16 @@
 import Phaser from "phaser";
 import BootScene from "./scenes/BootScene.js";
 import HistoriaScene from "./scenes/HistoriaScene.js";
+import SelecaoFasesScene from "./scenes/SelecaoFasesScene.js";
 import EstacaoScene from "./scenes/EstacaoScene.js";
 import ContagemScene from "./scenes/ContagemScene.js";
 import SomaScene from "./scenes/SomaScene.js";
 import SubtracaoScene from "./scenes/SubtracaoScene.js";
 import MultiplicacaoScene from "./scenes/MultiplicacaoScene.js";
 import DivisaoScene from "./scenes/DivisaoScene.js";
+import ComparacaoScene from "./scenes/ComparacaoScene.js";
+import SequenciaScene from "./scenes/SequenciaScene.js";
+import DesafioScene from "./scenes/DesafioScene.js";
 
 // Qual cena (puzzle) atende cada tipo de fase.
 const CENA_POR_TIPO = {
@@ -15,6 +19,9 @@ const CENA_POR_TIPO = {
   subtracao: "SubtracaoScene",
   multiplicacao: "MultiplicacaoScene",
   divisao: "DivisaoScene",
+  comparacao: "ComparacaoScene",
+  sequencia: "SequenciaScene",
+  desafio: "DesafioScene",
 };
 
 // Monta a configuração do Phaser. "Scale.FIT" faz o jogo se ajustar à tela
@@ -54,12 +61,16 @@ export function criarConfig(parent, dados) {
     scene: [
       BootScene,
       HistoriaScene,
+      SelecaoFasesScene,
       EstacaoScene,
       ContagemScene,
       SomaScene,
       SubtracaoScene,
       MultiplicacaoScene,
       DivisaoScene,
+      ComparacaoScene,
+      SequenciaScene,
+      DesafioScene,
     ],
     callbacks: {
       preBoot: (game) => {

@@ -10,7 +10,7 @@ export const fase05 = {
   cor: "#cc5de8",
   tipoPuzzle: "divisao",
   dificuldade: 5,
-  enunciado: "Arraste o combustível e reparta igualmente entre os tanques!",
+  enunciado: "Reparta igual nos tanques.",
   tarefaOk: "Rota traçada! 🧭",
-  gerar: { rodadas: 3, maxDivisor: 3, maxQuociente: 4 },
+  gerar: { rodadas: 3, maxDivisor: 3, maxQuociente: 5 },
 };

@@ -6,6 +6,7 @@ import { fases } from "../data/fases/index.js";
 import { ASSETS } from "../game/assets.js";
 import { salvarProgresso } from "../lib/progresso.js";
 import { pararFala } from "../lib/fala.js";
+import { limparAnuncios } from "../lib/anunciar.js";
 
 // Verifica (via HEAD) quais imagens realmente existem, sem gerar erros 404.
 async function assetsDisponiveis() {
@@ -40,8 +41,11 @@ export default function JogoCanvas({ irPara }) {
   const [mobile, setMobile] = useState(false);
   const { apelido, avatar, narracao, setNarracao, somLigado, setSomLigado } = useJogador();
 
-  // Ao sair da tela do jogo, garante que nenhuma narração continue tocando.
-  useEffect(() => () => pararFala(), []);
+  // Ao sair da tela do jogo, para a narração e remove a região de anúncios.
+  useEffect(() => () => {
+    pararFala();
+    limparAnuncios();
+  }, []);
 
   useEffect(() => {
     let cancelado = false;
@@ -133,15 +137,18 @@ export default function JogoCanvas({ irPara }) {
         >
           🦻 Narração
         </button>
-        <button
-          type="button"
-          className={"botao botao-audio-mini" + (mobile ? " ativo" : "")}
-          aria-pressed={mobile}
-          onClick={() => setMobile((m) => !m)}
-          title="Pré-visualizar como fica em uma tela de celular"
-        >
-          {mobile ? "🖥️ Ver no computador" : "📱 Ver no celular"}
-        </button>
+        {/* Ferramenta só de desenvolvimento — não aparece para o usuário final. */}
+        {import.meta.env.DEV && (
+          <button
+            type="button"
+            className={"botao botao-audio-mini" + (mobile ? " ativo" : "")}
+            aria-pressed={mobile}
+            onClick={() => setMobile((m) => !m)}
+            title="Pré-visualizar como fica em uma tela de celular"
+          >
+            {mobile ? "🖥️ Ver no computador" : "📱 Ver no celular"}
+          </button>
+        )}
       </div>
 
       <div className={"moldura-canvas" + (mobile ? " mobile" : "")}>

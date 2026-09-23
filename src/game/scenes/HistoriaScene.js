@@ -3,13 +3,14 @@ import { TEMA } from "../tema.js";
 import { desenharFundo, criarBotao, criarPersonagem } from "../desenho.js";
 import { falar } from "../../lib/fala.js";
 import { pling } from "../../lib/sfx.js";
+import { podeAgir } from "../teclado.js";
 
 // Abertura da aventura: conta a historinha do CosmoBot antes do primeiro
 // planeta. Mostrada uma vez, quando o jogo começa (BootScene → HistoriaScene).
 const HISTORIA = [
   "O CosmoBot é um robô explorador que adora viajar pelo espaço.",
   "Uma chuva de meteoros deixou a nave dele sem energia!",
-  "Para voltar para casa, ele precisa consertar a nave em 5 etapas.",
+  "Para voltar para casa, ele precisa consertar a nave em 8 etapas.",
   "Cada etapa tem um desafio de matemática. Vamos ajudar o CosmoBot?",
 ];
 
@@ -79,7 +80,9 @@ export default class HistoriaScene extends Phaser.Scene {
     );
     botao.setFoco(true);
 
-    const irComecar = () => this.comecar();
+    const irComecar = (e) => {
+      if (podeAgir(this, e)) this.comecar();
+    };
     this.input.keyboard.on("keydown-ENTER", irComecar);
     this.input.keyboard.on("keydown-SPACE", irComecar);
 
@@ -89,6 +92,8 @@ export default class HistoriaScene extends Phaser.Scene {
 
   comecar() {
     this.registry.set("indiceFase", 0);
-    this.scene.start("EstacaoScene");
+    this.registry.set("estrelas", 0); // começa a aventura com as estrelas zeradas
+    this.registry.set("estrelasPorEtapa", {});
+    this.scene.start("SelecaoFasesScene"); // agora o hub é o mapa de fases
   }
 }

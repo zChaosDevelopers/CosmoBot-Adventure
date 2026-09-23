@@ -10,7 +10,7 @@ export const fase04 = {
   cor: "#ff6b6b",
   tipoPuzzle: "multiplicacao",
   dificuldade: 4,
-  enunciado: "Encha cada motor com a mesma quantidade e descubra o total!",
+  enunciado: "Encha os motores iguais.",
   tarefaOk: "Motores ligados! 🚀",
-  gerar: { rodadas: 3, maxGrupos: 3, maxPorGrupo: 4 },
+  gerar: { rodadas: 3, maxGrupos: 3, maxPorGrupo: 5 },
 };

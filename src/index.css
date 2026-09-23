@@ -383,6 +383,34 @@ body.contraste-alto .tela::before { display: none; }
   background: rgba(255, 212, 59, 0.12);
 }
 
+/* Instruções curtas e visuais (ícone + frase curta) */
+.passos-instrucoes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.passos-instrucoes li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  font-weight: 500;
+}
+.passo-icone {
+  font-size: 1.8em;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
 .texto-instrucoes {
   text-align: left;
   background: rgba(255, 255, 255, 0.05);
@@ -396,7 +424,11 @@ body.contraste-alto .tela::before { display: none; }
 /* O canvas do Phaser cobre quase todo o cartão, então dispensamos o desfoque
    de fundo aqui (é caro e disputa GPU com o jogo — deixava a tela travando). */
 .tela-jogo {
-  max-width: 900px;
+  /* Quase tela cheia. Limita pela ALTURA (116vh) para o canvas 4:3 não passar
+     de ~87vh e evitar rolagem vertical. */
+  max-width: min(1180px, 95vw, 116vh);
+  padding: 12px;
+  gap: 12px;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   background: rgba(20, 10, 51, 0.92);
@@ -442,6 +474,13 @@ body.contraste-alto .tela::before { display: none; }
   .app { padding: 16px 12px; }
 }
 
+/* ===== Toque (celular/tablet): alvos maiores para o dedo ===== */
+body.toque .botao { min-height: 60px; font-size: 1.12em; }
+body.toque .botao-audio-mini { min-height: 50px; }
+body.toque .avatar-opcao { padding: 12px; }
+body.toque .campo input,
+body.toque .opcao-switch { min-height: 56px; }
+
 /* ===== Respeita quem prefere menos movimento ===== */
 @media (prefers-reduced-motion: reduce) {
   body::before, body::after,
@@ -451,3 +490,118 @@ body.contraste-alto .tela::before { display: none; }
     transition: none !important;
   }
 }
+
+/* ===== Tela de Créditos ===== */
+.lista-creditos {
+  list-style: none;
+  margin: 0;
+  padding: 0 6px 0 0;
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* A lista rola por dentro, então o título e o botão Voltar ficam SEMPRE
+     visíveis, mesmo em telas baixas (eram 8 integrantes empilhados). */
+  max-height: 46vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primaria) transparent;
+}
+.lista-creditos::-webkit-scrollbar { width: 8px; }
+.lista-creditos::-webkit-scrollbar-thumb {
+  background: var(--primaria);
+  border-radius: 999px;
+}
+.credito-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+}
+.credito-icone {
+  font-size: 1.5em;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(132, 94, 247, 0.18);
+}
+.credito-texto { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.credito-nome { font-weight: 600; color: #ffffff; }
+.credito-papel { font-size: 0.9em; color: var(--texto-suave); }
+.credito-rgm { font-size: 0.78em; color: rgba(248, 245, 255, 0.5); letter-spacing: 0.3px; }
+.creditos-rodape {
+  margin: 4px 0 0;
+  font-weight: 600;
+  color: var(--ciano);
+  letter-spacing: 0.4px;
+}
+
+/* ===== Aviso de nome já usado (tela Avatar) ===== */
+.aviso-nome {
+  margin: 4px auto 0;
+  max-width: 460px;
+  padding: 10px 14px;
+  background: rgba(240, 101, 149, 0.16);
+  border: 2px solid var(--acento);
+  border-radius: var(--raio);
+  color: #ffe3ee;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ===== Ranking ===== */
+.lista-ranking {
+  list-style: none;
+  margin: 8px auto;
+  padding: 0;
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.item-ranking {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--fundo-cartao);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+}
+.item-ranking.top {
+  border-color: var(--foco);
+  box-shadow: 0 6px 20px rgba(255, 212, 59, 0.22);
+}
+.item-ranking .posicao {
+  font-size: 1.4em;
+  font-weight: 700;
+  min-width: 34px;
+  text-align: center;
+}
+.item-ranking .icone-ranking { display: flex; }
+.item-ranking .nome-ranking {
+  flex: 1;
+  font-weight: 600;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.item-ranking .pontos-ranking {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.15;
+}
+.item-ranking .pontos-ranking strong { color: var(--foco); font-size: 1.15em; }
+.item-ranking .pontos-ranking small { color: var(--texto-suave); font-size: 0.8em; }

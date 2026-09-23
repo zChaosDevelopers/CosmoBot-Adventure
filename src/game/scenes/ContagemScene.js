@@ -2,7 +2,7 @@ import { TEMA } from "../tema.js";
 import { desenharLuz } from "../desenho.js";
 import { gerarRodadas } from "../gerarRodadas.js";
 import { falar } from "../../lib/fala.js";
-import { somAcerto, somErro, pling } from "../../lib/sfx.js";
+import { somAcerto, pling } from "../../lib/sfx.js";
 import FaseBase from "./FaseBase.js";
 
 // Etapa 1 — "Ligar o Painel": conte as LUZES acesas do painel e escolha o número.
@@ -24,6 +24,7 @@ export default class ContagemScene extends FaseBase {
     if (this.grupo) this.grupo.destroy(true);
     this.grupo = this.add.container(0, 0);
     this.bloqueado = false;
+    this.erros = 0;
 
     const centro = this.desenharCabecalho();
     const rodada = this.rodadas[this.rodadaAtual];
@@ -58,6 +59,9 @@ export default class ContagemScene extends FaseBase {
     }
 
     this.criarBotoesResposta(centro, rodada.opcoes, (num) => this.responder(num));
+
+    // Aparece só depois que os balões estouram.
+    this.criarBotaoDica(() => this.darDica());
   }
 
   responder(escolha) {
@@ -70,7 +74,22 @@ export default class ContagemScene extends FaseBase {
     this.bloqueado = true;
     this.botoes.forEach((b) => b.disableInteractive());
     somAcerto();
-    this.animarColeta(this.itens, () => this.aposAcerto());
+    // Feedback do PORQUÊ: o número contado salta bem grande (reforça "eram N").
+    const total = this.rodadas[this.rodadaAtual].quantidade;
+    const num = this.add
+      .text(this.scale.width / 2, this.scale.height * 0.42, `${total}`, {
+        fontFamily: TEMA.fonte,
+        fontSize: this.fs("64px"),
+        color: "#ffe000",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5)
+      .setScale(0);
+    num.setStroke("#0b1120", 6);
+    this.grupo.add(num);
+    this.tweens.add({ targets: num, scale: 1.15, duration: 300, ease: "Back.easeOut" });
+    this.tweens.add({ targets: num, y: num.y - 30, alpha: 0, delay: 500, duration: 500, onComplete: () => num.destroy() });
+    this.time.delayedCall(700, () => this.animarColeta(this.itens, () => this.aposAcerto()));
   }
 
   aposAcerto() {
@@ -82,14 +101,37 @@ export default class ContagemScene extends FaseBase {
     }
   }
 
-  // Sem punição: convida a contar de novo, destacando as luzes.
+  // Errou: as luzes incham; no 3º erro estouram e vem outra conta (mais fácil).
   tentarDeNovo() {
-    somErro();
-    falar("Quase! Vamos contar as luzes juntos.");
+    this.registrarErro(this.itens, () => this.gerarUmaRodada(true));
+  }
+
+  // "facil" (após estourar) reduz a quantidade máxima — adapta para quem erra.
+  gerarUmaRodada(facil) {
+    const c = this.fase.gerar;
+    const max = facil ? Math.max(c.min, Math.round(c.max * 0.6)) : c.max;
+    return gerarRodadas(1, c.min, max)[0];
+  }
+
+  // Dica VISUAL: conta as luzes uma a uma, mostrando o número saltar sobre
+  // cada uma (ensina a contar sem precisar ler nada).
+  darDica() {
+    falar("Conte comigo!");
     this.itens.forEach((c, i) => {
-      this.time.delayedCall(i * 240, () => {
+      this.time.delayedCall(i * 320, () => {
         pling(i);
-        this.tweens.add({ targets: c, scaleX: c.scaleX * 1.25, scaleY: c.scaleY * 1.25, duration: 160, yoyo: true });
+        this.tweens.add({ targets: c, scale: (c.scale || 1) * 1.4, duration: 200, yoyo: true });
+        const num = this.add
+          .text(c.x, c.y - 36, String(i + 1), {
+            fontFamily: TEMA.fonte,
+            fontSize: "30px",
+            color: "#ffe000",
+            fontStyle: "bold",
+          })
+          .setOrigin(0.5);
+        num.setStroke("#0b1120", 4);
+        this.grupo.add(num);
+        this.tweens.add({ targets: num, y: num.y - 12, alpha: 0, duration: 800, delay: 260, onComplete: () => num.destroy() });
       });
     });
   }

@@ -6,3 +6,9 @@ dist
 
 # Pasta de download bruto do Kenney (o jogo só usa as imagens copiadas para public/assets)
 Kenney/
+
+# Arte-fonte solta na raiz (o jogo usa as versões convertidas em public/assets/).
+# Barra no início = só na raiz, para não ignorar public/assets/foguete.png etc.
+/Foguete.png
+/logo-cruzeiro-do-sul-estrela-512.webp
+/Imagem do Codex*.png

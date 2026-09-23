@@ -9,6 +9,12 @@ Se um arquivo não existir, o jogo desenha uma versão procedural no lugar
 | `cristal.png` | Cristal de energia (item que a criança conta) | PNG com fundo transparente, ~128×128 |
 | `robo.png` | O Professor Robô (personagem) | PNG com fundo transparente, ~256 de altura |
 | `fundo.png` | Fundo da estação/espaço (opcional) | PNG/JPG, 800×600 |
+| `logo-cruzeiro.png` | Logo da Universidade Cruzeiro do Sul (selo no canto do painel) | **PNG com fundo transparente**, quadrado, ~256×256 |
+
+> **Logo da Cruzeiro do Sul:** basta soltar `logo-cruzeiro.png` aqui. O jogo já
+> tem o **selo em tema espacial** (moldura com anel de nebulosa e brilho) montado
+> no canto do painel — a imagem cai dentro dele automaticamente. Sem o arquivo, o
+> selo simplesmente não aparece (nada quebra).
 
 ## Onde conseguir (gratuito)
 
