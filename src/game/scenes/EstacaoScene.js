@@ -154,16 +154,32 @@ export default class EstacaoScene extends Phaser.Scene {
     const temFoguete = this.textures.exists("foguete");
     const temEstrela = this.textures.exists("estrela-cs");
 
-    // A nave decola: o foguete flutua subindo e solta um rastro de estrelas
-    // laranja (o "fogo" da propulsão). Sem a arte, cai no desenho procedural.
+    // A nave decola: o foguete (grande) sobe de baixo e depois voa em movimento
+    // contínuo — flutua subindo/descendo, balança e inclina — soltando um rastro
+    // de estrelas laranja (o "fogo"). Sem a arte, cai no desenho procedural.
+    const restX = width / 2;
+    const restY = height / 2 - 60;
     let nave;
     if (temFoguete) {
-      nave = this.add.image(width / 2, height / 2 - 40, "foguete").setDisplaySize(150, 150);
-      this.tweens.add({ targets: nave, angle: -4, duration: 1800, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+      nave = this.add.image(restX, restY, "foguete").setDisplaySize(210, 210);
+      // Entra "decolando" de baixo-esquerda até o ponto de flutuação.
+      nave.setPosition(restX - 120, restY + 190);
+      this.tweens.add({
+        targets: nave,
+        x: restX,
+        y: restY,
+        duration: 950,
+        ease: "Cubic.easeOut",
+        onComplete: () => {
+          this.tweens.add({ targets: nave, y: restY - 32, duration: 1300, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+          this.tweens.add({ targets: nave, x: restX + 22, duration: 2000, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+          this.tweens.add({ targets: nave, angle: 7, duration: 1600, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+        },
+      });
     } else {
-      nave = criarPersonagem(this, width / 2, height / 2 - 60, avatar, 128);
+      nave = criarPersonagem(this, restX, restY, avatar, 128);
+      this.tweens.add({ targets: nave, y: nave.y - 24, duration: 1500, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     }
-    this.tweens.add({ targets: nave, y: nave.y - 24, duration: 1500, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
 
     somVitoria();
     this.cameras.main.flash(500, 250, 220, 120);
@@ -171,8 +187,8 @@ export default class EstacaoScene extends Phaser.Scene {
     // Rastro de propulsão: estrelas laranja saindo da traseira (o foguete aponta
     // para cima-direita, então o fogo sai por baixo-esquerda).
     const emitirFogo = () => {
-      const bx = nave.x - 40 + Phaser.Math.Between(-10, 10);
-      const by = nave.y + 46;
+      const bx = nave.x - 56 + Phaser.Math.Between(-10, 10);
+      const by = nave.y + 62;
       if (temEstrela) {
         const faisca = this.add
           .image(bx, by, "estrela-cs")
