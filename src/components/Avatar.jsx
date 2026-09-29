@@ -59,6 +59,14 @@ export default function Avatar({ irPara }) {
             setNome(e.target.value);
             setErro("");
           }}
+          onKeyDown={(e) => {
+            // Enter no apelido já começa o jogo (acessibilidade por teclado —
+            // antes não dava para chegar no botão "Começar" pelo teclado).
+            if (e.key === "Enter") {
+              e.preventDefault();
+              comecar();
+            }
+          }}
           placeholder="Ex.: Estrelinha"
         />
       </label>
