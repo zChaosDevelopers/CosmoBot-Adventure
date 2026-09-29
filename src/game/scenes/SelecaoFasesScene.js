@@ -119,6 +119,18 @@ export default class SelecaoFasesScene extends Phaser.Scene {
       return;
     }
     if (this.cosmoMoveTween) this.cosmoMoveTween.remove();
+    // Rastro de estrelinhas atrás do CosmoBot enquanto voa (juice).
+    for (let k = 0; k < 4; k++) {
+      this.time.delayedCall(k * 55, () => {
+        if (!this.cosmo) return;
+        const t = this.add
+          .text(this.cosmo.x, this.cosmo.y + 6, "✨", { fontFamily: TEMA.fonte, fontSize: "16px" })
+          .setOrigin(0.5)
+          .setDepth(49)
+          .setAlpha(0.9);
+        this.tweens.add({ targets: t, alpha: 0, scale: 0.4, duration: 400, onComplete: () => t.destroy() });
+      });
+    }
     this.cosmoMoveTween = this.tweens.add({
       targets: this.cosmo,
       x,
@@ -127,9 +139,28 @@ export default class SelecaoFasesScene extends Phaser.Scene {
       ease: "Cubic.easeInOut",
       onComplete: () => {
         this.cosmoMoveTween = null;
+        this.poofNoPlaneta(x, y); // faísca ao pousar
         aoChegar?.();
       },
     });
+  }
+
+  // Pequena faísca de pouso quando o CosmoBot chega num planeta (juice).
+  poofNoPlaneta(x, y) {
+    for (let k = 0; k < 7; k++) {
+      const ang = (k / 7) * Math.PI * 2;
+      const p = this.add.circle(x, y, 4, 0xffe066, 1).setDepth(48);
+      this.tweens.add({
+        targets: p,
+        x: x + Math.cos(ang) * 40,
+        y: y + Math.sin(ang) * 40,
+        alpha: 0,
+        scale: 0.2,
+        duration: 420,
+        ease: "Cubic.easeOut",
+        onComplete: () => p.destroy(),
+      });
+    }
   }
 
   // Foguete decorativo cruzando o fundo, na faixa livre acima dos planetas.
