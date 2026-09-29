@@ -33,7 +33,25 @@ export default function Avatar({ irPara }) {
     <section className="tela" aria-label="Escolha do robô e apelido">
       <h2 className="titulo">Escolha o seu CosmoBot!</h2>
 
-      <div className="grade-avatares" role="radiogroup" aria-label="Cores de robô">
+      <div
+        className="grade-avatares"
+        role="radiogroup"
+        aria-label="Cores de robô"
+        onKeyDown={(e) => {
+          // Setas navegam entre as cores do robô (acessibilidade por teclado).
+          const cores = TEMA.coresRobo;
+          let i = cores.indexOf(avatar);
+          if (i < 0) i = 0;
+          let ni = null;
+          if (e.key === "ArrowRight" || e.key === "ArrowDown") ni = (i + 1) % cores.length;
+          else if (e.key === "ArrowLeft" || e.key === "ArrowUp") ni = (i - 1 + cores.length) % cores.length;
+          if (ni != null) {
+            e.preventDefault();
+            escolherAvatar(cores[ni]);
+            e.currentTarget.querySelectorAll("button")[ni]?.focus();
+          }
+        }}
+      >
         {TEMA.coresRobo.map((cor) => (
           <button
             key={cor}
