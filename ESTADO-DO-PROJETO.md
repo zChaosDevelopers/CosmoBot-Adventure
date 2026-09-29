@@ -4,9 +4,55 @@
 > parou**, o que está pronto/testado, o que ficou pendente e como rodar. Leia primeiro a
 > seção 2 (onde paramos) e a seção 6 (pendências).
 
-- **Data deste registro:** 11/09/2026
-- **Versão:** 0.2.0
-- **Stack:** React (telas) + Phaser 3 (jogo) + Supabase (progresso) + Vite (build)
+- **Data deste registro:** 28/09/2026
+- **Versão:** 0.3.0
+- **Stack:** React (telas) + Phaser 3 (jogo) + Supabase (progresso, opcional) + Vite (build) + PWA
+
+> ⚠️ **Leia primeiro a seção 0 (Atualização v2/v3).** As seções 1–8 abaixo foram
+> escritas na v0.2.0 (jogo com **5 etapas**) e descrevem bem a MECÂNICA base, mas o
+> jogo agora tem **8 fases**, mapa de seleção, badges, ranking e mais. A seção 0
+> resume o que mudou.
+
+---
+
+## 0. Atualização v2/v3 — estado atual (o que mudou desde a v0.2.0)
+
+O jogo cresceu de 5 para **8 fases** e ganhou vários sistemas. Fluxo atual:
+`Boot → História → Mapa de fases (hub) → fase → volta ao mapa`; ao concluir as 8,
+o botão "Decolar" leva à celebração final (`EstacaoScene`).
+
+**As 8 fases:** 1 Contagem · 2 Soma · 3 Subtração · 4 Multiplicação · 5 Divisão ·
+6 Comparação (>,<,=) · 7 Sequência/Padrão · 8 Desafio Final (boss misto).
+
+**Novidades já prontas e testadas:**
+- **Mapa de seleção de fases** (`SelecaoFasesScene`) com travar/liberar/concluir e teclado.
+- **3 fases novas** jogáveis: Comparação, Sequência, Desafio Final.
+- **Sistema de badges** (`badges.js` + arte em `public/assets/badge-1..8.png`) com nível
+  de brilho (Bronze/Prata/Ouro/Holográfica) por rapidez + acertos.
+- **Badge Suprema** (`badge-suprema.png`): entregue na celebração final quando o
+  histórico é perfeito (todas as fases nível 4).
+- **Ranking local** (`Ranking.jsx` + `lib/ranking.js`) com regra de nome único.
+- **Aba de Créditos** (`Creditos.jsx`).
+- **Foguete + estrela laranja (Cruzeiro do Sul)** na decolagem: o foguete (grande,
+  animado) sobe com um rastro de estrelas laranja como "fogo" (`EstacaoScene`).
+- **PWA** (instalável/offline) via `vite-plugin-pwa`.
+- **Acessibilidade** ampliada: aria-live (`lib/anunciar.js`), teclado (H = dica),
+  contraste alto e fonte grande dentro do jogo (`acessibilidade.js`).
+
+**Correção importante (28/09/2026):** `SelecaoFasesScene`, `ComparacaoScene`,
+`SequenciaScene` e `DesafioScene` estavam importadas mas **fora do array `scene:`**
+do `config.js` — o jogo quebrava após a história e as fases 6–8 não abriam. Corrigido.
+
+**Como rodar no Windows** (o PowerShell bloqueia `npm`): use `node` direto —
+build `node node_modules/vite/bin/vite.js build`, dev `node node_modules/vite/bin/vite.js --port 5199`,
+teste `node scripts/test-geradores.mjs`. O `.claude/launch.json` já usa `node`.
+
+**Pendente:** trilha sonora + ducking (falta o `public/audios/musica-fundo.mp3`);
+narração gravada (opcional); decisão de ranking global via Supabase; ideias complexas
+(personagem controlável, co-op, tutorial interativo).
+
+---
+
 - **Documentação completa:** [`DOCUMENTACAO.md`](DOCUMENTACAO.md) e
   [`docs/Documentacao-Tecnica-CosmoBot.pdf`](docs/Documentacao-Tecnica-CosmoBot.pdf) (versão
   formatada para o grupo/QA).
