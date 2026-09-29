@@ -29,6 +29,18 @@ export default class FaseBase extends Phaser.Scene {
     this.errosEtapa = 0; // erros na etapa INTEIRA (para as estrelas)
     this.mostrarDica = false; // vira true depois que os balões estouram
 
+    // Tutorial de primeira vez: na 1ª fase, se o jogador nunca jogou neste
+    // aparelho, mostramos a dica (💡) desde o início e demonstramos a jogada.
+    let tutorialVisto = false;
+    try {
+      tutorialVisto = !!localStorage.getItem("cosmobot.tutorial");
+    } catch {
+      /* localStorage indisponível: trata como já visto (não força tutorial) */
+      tutorialVisto = true;
+    }
+    this.primeiraVezJogo = this.indiceFase === 0 && !tutorialVisto;
+    if (this.primeiraVezJogo) this.mostrarDica = true;
+
     // Acessibilidade dentro do jogo: contraste alto e fonte grande.
     this.a11y = lerAcessibilidade();
     this.fs = (t) => px(t, this.a11y.escala); // escala tamanhos de fonte
@@ -122,7 +134,27 @@ export default class FaseBase extends Phaser.Scene {
     // Leitor de tela: anuncia a tarefa da rodada (o <canvas> não é lido sozinho).
     anunciar(`${this.fase.modulo}. ${this.fase.enunciado}`);
 
+    // Na primeiríssima jogada, demonstra a jogada sozinho (visual).
+    this.talvezMostrarTutorial();
+
     return centro;
+  }
+
+  // Demonstração automática na primeira vez (só na 1ª fase, 1ª rodada). Usa a
+  // dica visual da própria fase (contar as luzes, encher um exemplo, etc.).
+  talvezMostrarTutorial() {
+    if (!this.primeiraVezJogo || this._tutorialFeito || this.rodadaAtual !== 0) return;
+    this._tutorialFeito = true;
+    try {
+      localStorage.setItem("cosmobot.tutorial", "1");
+    } catch {
+      /* sem localStorage: apenas não persiste, o tutorial roda esta vez */
+    }
+    anunciar("Bem-vindo! Veja como se joga.");
+    // Espera a criança ver a tela, depois demonstra (se a fase tiver dica).
+    this.time.delayedCall(800, () => {
+      if (this.darDica) this.darDica();
+    });
   }
 
   // ===== Item interativo (com "plim" ao passar o mouse) =====
