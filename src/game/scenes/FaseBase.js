@@ -207,7 +207,10 @@ export default class FaseBase extends Phaser.Scene {
       this.grupo.add(b);
       this.botoes.push(b);
     });
-    this.focoIndex = 0;
+    // Começa SEM nenhum botão pré-focado: assim um Enter avulso (inclusive o
+    // herdado da tela anterior) não responde a conta sozinho. O foco só aparece
+    // quando a criança navega com as setas ou passa o mouse por cima.
+    this.focoIndex = -1;
     this.atualizarFoco();
   }
 
@@ -465,6 +468,7 @@ export default class FaseBase extends Phaser.Scene {
   // responder/pular fases sozinho.
   ativarFoco(evento) {
     if (this.bloqueado || !podeAgir(this, evento)) return;
+    if (this.focoIndex < 0) return; // nada focado ainda: Enter não responde
     const alvo = this.botoes?.[this.focoIndex];
     if (alvo) {
       alvo.apertar?.();
@@ -474,7 +478,9 @@ export default class FaseBase extends Phaser.Scene {
 
   moverFoco(dir) {
     if (!this.botoes?.length) return;
-    this.focoIndex = Phaser.Math.Wrap(this.focoIndex + dir, 0, this.botoes.length);
+    // Do estado "sem foco" (-1), a 1ª seta foca a ponta correta.
+    if (this.focoIndex < 0) this.focoIndex = dir > 0 ? 0 : this.botoes.length - 1;
+    else this.focoIndex = Phaser.Math.Wrap(this.focoIndex + dir, 0, this.botoes.length);
     this.atualizarFoco();
   }
 
@@ -517,8 +523,8 @@ export default class FaseBase extends Phaser.Scene {
     );
   }
 
-  // ===== Erro → as bolinhas incham → no 5º erro ESTOURAM e vem outra conta =====
-  // Cada erro deixa as bolinhas maiores. Ao chegar no limite (5), elas estouram
+  // ===== Erro → as bolinhas incham → no 3º erro ESTOURAM e vem outra conta =====
+  // Cada erro deixa as bolinhas maiores. Ao chegar no limite (LIMITE_ERROS=3), elas estouram
   // e a pergunta é trocada. Retorna true se estourou (a cena deve parar aí).
   registrarErro(bolinhas, gerarNova, textoBreve) {
     this.erros = (this.erros || 0) + 1;
@@ -595,8 +601,10 @@ export default class FaseBase extends Phaser.Scene {
   // de lâmpada (💡) com um brilho pulsante — nada de texto para ler.
   criarBotaoDica(aoClicar) {
     if (!this.mostrarDica) return null;
-    const x = 70;
-    const y = this.scale.height - 46;
+    // Fica na LATERAL DIREITA, na meia-altura: longe dos botões de resposta
+    // (embaixo) e da tira da nave (topo), para não sobrepor nenhuma interação.
+    const x = this.scale.width - 42;
+    const y = this.scale.height / 2 + 20;
     // Brilho pulsante atrás, para a criança perceber que ali tem ajuda.
     const glow = this.add.circle(x, y, 32, 0x00c2ff, 0.4);
     this.grupo.add(glow);

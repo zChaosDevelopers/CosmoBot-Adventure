@@ -165,14 +165,23 @@ export default class ComparacaoScene extends FaseBase {
   }
 
   // Dica VISUAL: conta as bolinhas do lado maior, uma a uma.
+  // Dica que ENSINA sem entregar a resposta: conta um lado e depois o outro,
+  // para a criança comparar sozinha — NÃO destaca qual é o maior.
   darDica() {
-    const r = this.rodada;
-    const lado = r.a >= r.b ? this.ladoEsq.dots : this.ladoDir.dots;
-    falar("Veja qual lado tem mais!");
-    lado.forEach((d, i) => {
-      this.time.delayedCall(i * 200, () => {
+    falar("Conte os dois lados e veja qual tem mais!");
+    const esq = this.ladoEsq.dots;
+    const dir = this.ladoDir.dots;
+    esq.forEach((d, i) => {
+      this.time.delayedCall(i * 180, () => {
         pling(i);
-        this.tweens.add({ targets: d, scale: 1.4, duration: 180, yoyo: true });
+        this.tweens.add({ targets: d, scale: 1.4, duration: 160, yoyo: true });
+      });
+    });
+    const off = esq.length * 180 + 350;
+    dir.forEach((d, i) => {
+      this.time.delayedCall(off + i * 180, () => {
+        pling(i);
+        this.tweens.add({ targets: d, scale: 1.4, duration: 160, yoyo: true });
       });
     });
   }

@@ -6,22 +6,14 @@ import { somVitoria, pling } from "../../lib/sfx.js";
 import { podeAgir } from "../teclado.js";
 import { resumirBadges } from "../badges.js";
 
-// Converte "#rrggbb" para número de cor do Phaser (com verde padrão de reserva).
-function corNum(cor) {
-  if (typeof cor === "number") return cor;
-  const hex = String(cor || "").replace("#", "");
-  return /^[0-9a-f]{6}$/i.test(hex) ? parseInt(hex, 16) : 0x51cf66;
-}
-
-// HUB da nave: entre uma etapa e outra, apresenta o próximo conserto do CosmoBot
-// e mostra o robô avançando pela nave. Ao terminar tudo, a nave decola.
+// Celebração final: quando todas as fases foram concluídas, a nave do CosmoBot
+// decola. (O hub/meio de jogo é a SelecaoFasesScene; esta cena é só o final.)
 export default class EstacaoScene extends Phaser.Scene {
   constructor() {
     super("EstacaoScene");
   }
 
   create() {
-    const { width, height } = this.scale;
     this.jogador = this.registry.get("jogador") || {};
     const avatar = this.jogador.avatar || "#51cf66";
     const apelido = this.jogador.apelido || "Explorador";
@@ -45,71 +37,10 @@ export default class EstacaoScene extends Phaser.Scene {
     const estrelas = this.registry.get("estrelasPorEtapa") || {};
     desenharTiraNave(this, etapas, idx, { y: 40, estrelas });
 
-    // Todas as etapas concluídas → a nave decola.
-    if (idx >= roteiro.length) {
-      this.mostrarFinal(avatar, apelido, roteiro.length);
-      return;
-    }
-
-    const faseAtual = roteiro[idx].fase;
-    const cor = faseAtual.cor || "#ffd43b";
-
-    // CosmoBot flutuando.
-    const robo = criarPersonagem(this, width / 2, height / 2 - 108, avatar, 100);
-    this.tweens.add({ targets: robo, y: robo.y - 16, duration: 1200, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
-
-    this.add
-      .text(width / 2, height / 2 - 36, `Etapa ${idx + 1} de ${roteiro.length}`, {
-        fontFamily: TEMA.fonte,
-        fontSize: "18px",
-        color: "#ffd8a8",
-      })
-      .setOrigin(0.5);
-
-    this.add
-      .text(width / 2, height / 2 + 4, `${faseAtual.emoji || "🔧"}  ${faseAtual.modulo}`, {
-        fontFamily: TEMA.fonte,
-        fontSize: "34px",
-        color: cor,
-        align: "center",
-        wordWrap: { width: width - 100 },
-      })
-      .setOrigin(0.5);
-
-    this.add
-      .text(width / 2, height / 2 + 52, faseAtual.enunciado, {
-        fontFamily: TEMA.fonte,
-        fontSize: "18px",
-        color: "#e2e8f0",
-        align: "center",
-        wordWrap: { width: width - 150 },
-      })
-      .setOrigin(0.5);
-
-    const botao = criarBotao(
-      this,
-      width / 2,
-      height / 2 + 144,
-      "Consertar ▶",
-      () => this.scene.start(roteiro[idx].cena),
-      { largura: 300, altura: 68, fontSize: "26px", cor: corNum(cor) }
-    );
-    botao.setFoco(true);
-
-    this.input.keyboard.on("keydown-ENTER", () => this.scene.start(roteiro[idx].cena));
-    this.input.keyboard.on("keydown-SPACE", () => this.scene.start(roteiro[idx].cena));
-
-    const ehToque = typeof document !== "undefined" && document.body.classList.contains("toque");
-    this.add
-      .text(width / 2, height - 24, ehToque ? "Toque no botão" : "Toque no botão ou aperte Enter", {
-        fontFamily: TEMA.fonte,
-        fontSize: "14px",
-        color: "#64748b",
-      })
-      .setOrigin(0.5);
-
-    const saudacao = idx === 0 ? `Vamos lá, ${apelido}! ` : "";
-    falar(`${saudacao}Próximo conserto: ${faseAtual.modulo}. ${faseAtual.enunciado}`);
+    // Todas as etapas concluídas → a nave decola (única função desta cena agora;
+    // o hub/meio de jogo é a SelecaoFasesScene). O early-return acima garante
+    // idx >= roteiro.length aqui.
+    this.mostrarFinal(avatar, apelido, roteiro.length);
   }
 
   // ===== Ambiente lentamente animado (deixa o hub "vivo") =====

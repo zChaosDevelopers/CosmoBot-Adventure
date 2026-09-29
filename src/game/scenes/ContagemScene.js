@@ -113,26 +113,20 @@ export default class ContagemScene extends FaseBase {
     return gerarRodadas(1, c.min, max)[0];
   }
 
-  // Dica VISUAL: conta as luzes uma a uma, mostrando o número saltar sobre
-  // cada uma (ensina a contar sem precisar ler nada).
+  // Dica VISUAL que ENSINA o método sem entregar a resposta: pulsa uma luz por
+  // vez (mostra "conte um a um") e no fim aponta para os botões — NÃO mostra o
+  // número final; a criança conta junto e escolhe.
   darDica() {
-    falar("Conte comigo!");
+    falar("Conte comigo, uma de cada vez!");
     this.itens.forEach((c, i) => {
-      this.time.delayedCall(i * 320, () => {
+      this.time.delayedCall(i * 340, () => {
         pling(i);
-        this.tweens.add({ targets: c, scale: (c.scale || 1) * 1.4, duration: 200, yoyo: true });
-        const num = this.add
-          .text(c.x, c.y - 36, String(i + 1), {
-            fontFamily: TEMA.fonte,
-            fontSize: "30px",
-            color: "#ffe000",
-            fontStyle: "bold",
-          })
-          .setOrigin(0.5);
-        num.setStroke("#0b1120", 4);
-        this.grupo.add(num);
-        this.tweens.add({ targets: num, y: num.y - 12, alpha: 0, duration: 800, delay: 260, onComplete: () => num.destroy() });
+        this.tweens.add({ targets: c, scale: (c.scale || 1) * 1.4, duration: 220, yoyo: true });
       });
+    });
+    // No fim, convida a escolher (sem dizer qual número é).
+    this.time.delayedCall(this.itens.length * 340 + 250, () => {
+      this.apontar(this.scale.width / 2, this.scale.height - 118, 3);
     });
   }
 }

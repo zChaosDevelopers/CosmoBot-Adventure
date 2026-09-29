@@ -1,4 +1,3 @@
-import Phaser from "phaser";
 import { TEMA } from "../tema.js";
 import { desenharCaixa } from "../desenho.js";
 import { gerarRodadasSubtracao } from "../gerarRodadas.js";
