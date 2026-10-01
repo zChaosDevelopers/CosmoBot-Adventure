@@ -78,6 +78,14 @@ export default function JogoCanvas({ irPara }) {
       // teclado do celular abrindo...), esse cache fica desatualizado e alguns
       // cliques "erram" o botão. Recalculamos os limites nesses momentos.
       const jogo = jogoRef.current;
+      // Dá foco ao canvas para o teclado funcionar logo de cara (a tela de
+      // apelido tinha um <input> com foco; sem isso, as teclas podem "não pegar").
+      try {
+        jogo.canvas?.setAttribute("tabindex", "0");
+        jogo.canvas?.focus?.({ preventScroll: true });
+      } catch {
+        /* ignora */
+      }
       const atualizarLimites = () => jogo?.scale?.refresh();
       [120, 400, 900].forEach((ms) => setTimeout(atualizarLimites, ms));
       window.addEventListener("resize", atualizarLimites);

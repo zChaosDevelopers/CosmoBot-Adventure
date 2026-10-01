@@ -3,6 +3,7 @@ import { TEMA } from "../tema.js";
 import { desenharCaixa } from "../desenho.js";
 import { falar } from "../../lib/fala.js";
 import { somAcerto, pling } from "../../lib/sfx.js";
+import { podeAgir } from "../teclado.js";
 import FaseBase from "./FaseBase.js";
 
 // Base para as fases de DISTRIBUIR itens igualmente em zonas — hoje a Divisão
@@ -285,8 +286,9 @@ export default class FaseDistribuir extends FaseBase {
   configurarTecladoZonas() {
     this.input.keyboard.on("keydown-RIGHT", () => this.moverFocoZona(1));
     this.input.keyboard.on("keydown-LEFT", () => this.moverFocoZona(-1));
-    this.input.keyboard.on("keydown-ENTER", () => this.acaoTecladoZona());
-    this.input.keyboard.on("keydown-SPACE", () => this.acaoTecladoZona());
+    // podeAgir() ignora tecla SEGURADA (auto-repeat) e limita a frequência.
+    this.input.keyboard.on("keydown-ENTER", (e) => podeAgir(this, e) && this.acaoTecladoZona());
+    this.input.keyboard.on("keydown-SPACE", (e) => podeAgir(this, e) && this.acaoTecladoZona());
     this.input.keyboard.on("keydown-BACKSPACE", () => this.tirarDaZona());
   }
 

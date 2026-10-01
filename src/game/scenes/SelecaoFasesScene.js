@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { TEMA } from "../tema.js";
-import { desenharFundo, criarBotao, criarPersonagem } from "../desenho.js";
+import { desenharFundo, criarBotao } from "../desenho.js";
 import { falar } from "../../lib/fala.js";
 import { pling } from "../../lib/sfx.js";
 import { podeAgir } from "../teclado.js";
@@ -75,7 +75,7 @@ export default class SelecaoFasesScene extends Phaser.Scene {
     } else {
       const proxima = this.roteiro.findIndex((_, i) => this.estrelas[i] == null);
       this.add
-        .text(width / 2, 545, "Toque numa fase — ou mova o CosmoBot com as setas ⬅️➡️", {
+        .text(width / 2, 545, "Toque numa fase para jogar (ou use as setas e Enter)", {
           fontFamily: TEMA.fonte,
           fontSize: "16px",
           color: "#94a3b8",
@@ -87,80 +87,8 @@ export default class SelecaoFasesScene extends Phaser.Scene {
 
     this.configurarTecladoMapa(tudoFeito);
 
-    // Personagem controlável (vibe Pico Park): o CosmoBot fica em cima do planeta
-    // em foco e "voa" para o próximo quando a criança usa as setas. Foguete
-    // decorativo cruza o fundo devagar (só enfeite).
-    this.criarCosmoNoMapa();
+    // Foguete decorativo cruza o fundo devagar (só enfeite, não interativo).
     this.criarFogueteDecorativo();
-  }
-
-  // Cria o CosmoBot controlável, pousado no planeta em foco.
-  criarCosmoNoMapa() {
-    if (!this.nos.length) return;
-    const n = this.nos[this.focoSel] || this.nos[0];
-    this.cosmo = criarPersonagem(this, n.x, n.y, this.jogador.avatar || "#2bff88", 46);
-    this.cosmo.setDepth(50);
-    // Respiração (idle) — só escala, para não brigar com o movimento em X/Y.
-    this.cosmoIdle = this.tweens.add({
-      targets: this.cosmo,
-      scaleX: 1.08,
-      scaleY: 1.08,
-      duration: 900,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
-    });
-  }
-
-  // Move o CosmoBot até um planeta (voa suave); chama aoChegar ao pousar.
-  moverCosmoPara(x, y, aoChegar) {
-    if (!this.cosmo) {
-      aoChegar?.();
-      return;
-    }
-    if (this.cosmoMoveTween) this.cosmoMoveTween.remove();
-    // Rastro de estrelinhas atrás do CosmoBot enquanto voa (juice).
-    for (let k = 0; k < 4; k++) {
-      this.time.delayedCall(k * 55, () => {
-        if (!this.cosmo) return;
-        const t = this.add
-          .text(this.cosmo.x, this.cosmo.y + 6, "✨", { fontFamily: TEMA.fonte, fontSize: "16px" })
-          .setOrigin(0.5)
-          .setDepth(49)
-          .setAlpha(0.9);
-        this.tweens.add({ targets: t, alpha: 0, scale: 0.4, duration: 400, onComplete: () => t.destroy() });
-      });
-    }
-    this.cosmoMoveTween = this.tweens.add({
-      targets: this.cosmo,
-      x,
-      y,
-      duration: 300,
-      ease: "Cubic.easeInOut",
-      onComplete: () => {
-        this.cosmoMoveTween = null;
-        this.poofNoPlaneta(x, y); // faísca ao pousar
-        aoChegar?.();
-      },
-    });
-  }
-
-  // Pequena faísca de pouso quando o CosmoBot chega num planeta (juice).
-  poofNoPlaneta(x, y) {
-    for (let k = 0; k < 7; k++) {
-      const ang = (k / 7) * Math.PI * 2;
-      const p = this.add.circle(x, y, 4, 0xffe066, 1).setDepth(48);
-      this.tweens.add({
-        targets: p,
-        x: x + Math.cos(ang) * 40,
-        y: y + Math.sin(ang) * 40,
-        alpha: 0,
-        scale: 0.2,
-        duration: 420,
-        ease: "Cubic.easeOut",
-        onComplete: () => p.destroy(),
-      });
-    }
   }
 
   // Foguete decorativo cruzando o fundo, na faixa livre acima dos planetas.
@@ -174,7 +102,7 @@ export default class SelecaoFasesScene extends Phaser.Scene {
       // ~y169) — assim o enfeite nunca sobrepõe os planetas.
       f.setPosition(-60, Phaser.Math.Between(108, 138));
       f.setAngle(Phaser.Math.Between(-8, 8));
-      this.cosmoFogueteTween = this.tweens.add({
+      this.fogueteTween = this.tweens.add({
         targets: f,
         x: width + 60,
         duration: Phaser.Math.Between(9000, 14000),
@@ -198,8 +126,6 @@ export default class SelecaoFasesScene extends Phaser.Scene {
     const mover = (d) => {
       this.focoSel = Phaser.Math.Wrap(this.focoSel + d, 0, this.nos.length);
       this.desenharFocoRing();
-      const n = this.nos[this.focoSel];
-      if (n) this.moverCosmoPara(n.x, n.y); // o CosmoBot voa para o planeta
       pling(0);
     };
     this.input.keyboard.on("keydown-RIGHT", () => mover(1));
@@ -291,24 +217,10 @@ export default class SelecaoFasesScene extends Phaser.Scene {
     if (this._entrando) return; // evita entrada dupla (toque + Enter)
     this._entrando = true;
     pling(0);
-    const n = this.nos.find((nn) => nn.i === i);
-    const entrar = () => {
-      this.cameras.main.flash(160, 120, 90, 200);
-      this.registry.set("indiceFase", i);
-      const cena = this.roteiro[i]?.cena || "ContagemScene";
-      this.time.delayedCall(140, () => this.scene.start(cena));
-    };
-    // Se o CosmoBot ainda não está no planeta escolhido, voa até lá e então entra.
-    const jaLa = this.cosmo && n && Math.abs(this.cosmo.x - n.x) < 6 && Math.abs(this.cosmo.y - n.y) < 6;
-    if (n && !jaLa) {
-      if (n) {
-        this.focoSel = this.nos.indexOf(n);
-        this.desenharFocoRing();
-      }
-      this.moverCosmoPara(n.x, n.y, entrar);
-    } else {
-      entrar();
-    }
+    this.cameras.main.flash(160, 120, 90, 200);
+    this.registry.set("indiceFase", i);
+    const cena = this.roteiro[i]?.cena || "ContagemScene";
+    this.time.delayedCall(140, () => this.scene.start(cena));
   }
 
   decolar() {

@@ -69,22 +69,22 @@ export default class DesafioScene extends FaseBase {
     const q = this.rodadas[this.rodadaAtual];
     this.q = q;
 
-    // ===== Conta DESTACADA (box grande no centro) =====
-    const bw = Math.min(470, this.scale.width - 70);
-    const bh = 98;
-    const ey = 322;
+    // ===== Conta DESTACADA (box grande, no centro e um pouco mais pra cima) =====
+    const bw = Math.min(520, this.scale.width - 50);
+    const bh = 118;
+    const ey = 296;
     const g = this.add.graphics();
     g.fillStyle(0x0b1120, 0.92);
-    g.fillRoundedRect(centro - bw / 2, ey - bh / 2, bw, bh, 18);
-    g.lineStyle(5, TEMA.foco, 1);
-    g.strokeRoundedRect(centro - bw / 2, ey - bh / 2, bw, bh, 18);
+    g.fillRoundedRect(centro - bw / 2, ey - bh / 2, bw, bh, 20);
+    g.lineStyle(6, TEMA.foco, 1);
+    g.strokeRoundedRect(centro - bw / 2, ey - bh / 2, bw, bh, 20);
     this.grupo.add(g);
 
     this.eqBox = this.add.container(centro, ey);
     this.eqTxt = this.add
       .text(0, 0, `${q.icone}  ${q.prompt} = ?`, {
         fontFamily: TEMA.fonte,
-        fontSize: this.fs("38px"),
+        fontSize: this.fs("46px"),
         color: "#ffffff",
         fontStyle: "bold",
       })

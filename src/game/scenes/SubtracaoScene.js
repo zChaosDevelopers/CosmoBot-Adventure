@@ -3,6 +3,7 @@ import { desenharCaixa } from "../desenho.js";
 import { gerarRodadasSubtracao } from "../gerarRodadas.js";
 import { falar } from "../../lib/fala.js";
 import { somAcerto, somErro, pling } from "../../lib/sfx.js";
+import { podeAgir } from "../teclado.js";
 import FaseBase from "./FaseBase.js";
 
 // Etapa 3 — "Encher as Baterias": SUBTRAÇÃO como TIRAR (retirar do total).
@@ -280,9 +281,11 @@ export default class SubtracaoScene extends FaseBase {
   }
 
   // ===== Teclado: Enter descarrega a próxima; Backspace recarrega a última =====
+  // podeAgir() ignora tecla SEGURADA (auto-repeat) e limita a frequência — assim
+  // não dá para "mashar" Enter e descarregar tudo sem pensar.
   configurarTecladoDescarte() {
-    this.input.keyboard.on("keydown-ENTER", () => this.descarregarProxima());
-    this.input.keyboard.on("keydown-SPACE", () => this.descarregarProxima());
+    this.input.keyboard.on("keydown-ENTER", (e) => podeAgir(this, e) && this.descarregarProxima());
+    this.input.keyboard.on("keydown-SPACE", (e) => podeAgir(this, e) && this.descarregarProxima());
     this.input.keyboard.on("keydown-BACKSPACE", () => {
       if (this.bloqueado) return;
       const ultima = this.bin?.itens?.[this.bin.itens.length - 1];

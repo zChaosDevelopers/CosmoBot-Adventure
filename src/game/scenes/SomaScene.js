@@ -3,6 +3,7 @@ import { desenharCaixa } from "../desenho.js";
 import { gerarRodadasSoma } from "../gerarRodadas.js";
 import { falar } from "../../lib/fala.js";
 import { somAcerto, pling } from "../../lib/sfx.js";
+import { podeAgir } from "../teclado.js";
 import FaseBase from "./FaseBase.js";
 
 // Etapa 2 — "Abrir a Comporta": SOMA como JUNTAR (reunir dois grupos).
@@ -224,9 +225,11 @@ export default class SomaScene extends FaseBase {
   }
 
   // ===== Teclado: Enter junta a próxima; Backspace devolve a última =====
+  // podeAgir() ignora tecla SEGURADA (auto-repeat) e limita a frequência — assim
+  // não dá para "mashar" Enter e juntar tudo (passar a fase) sem pensar.
   configurarTecladoNucleo() {
-    this.input.keyboard.on("keydown-ENTER", () => this.juntarProxima());
-    this.input.keyboard.on("keydown-SPACE", () => this.juntarProxima());
+    this.input.keyboard.on("keydown-ENTER", (e) => podeAgir(this, e) && this.juntarProxima());
+    this.input.keyboard.on("keydown-SPACE", (e) => podeAgir(this, e) && this.juntarProxima());
     this.input.keyboard.on("keydown-BACKSPACE", () => {
       if (this.bloqueado) return;
       const ultima = this.nucleo?.itens?.[this.nucleo.itens.length - 1];

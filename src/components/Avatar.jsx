@@ -20,6 +20,9 @@ export default function Avatar({ irPara }) {
     }
     registrarJogador(limpo, avatar);
     setApelido(limpo);
+    // Tira o foco do <input> do DOM antes de abrir o jogo — senão o campo de
+    // texto continua "segurando" o teclado e as setas/Enter não chegam no jogo.
+    if (typeof document !== "undefined") document.activeElement?.blur?.();
     irPara("jogo");
   }
 

@@ -211,15 +211,6 @@ export function criarBotao(scene, x, y, rotulo, aoClicar, opts = {}) {
   visual.add(t);
   c.add(visual);
 
-  // Área de clique generosa (um pouco maior que o botão) e SEMPRE fixa.
-  c.setSize(L, A);
-  const margem = 8;
-  c.setInteractive(
-    new Phaser.Geom.Rectangle(-L / 2 - margem, -A / 2 - margem, L + margem * 2, A + margem * 2),
-    Phaser.Geom.Rectangle.Contains
-  );
-  if (c.input) c.input.cursor = "pointer";
-
   const apertar = () => {
     scene.tweens.killTweensOf(visual);
     visual.setScale(1);
@@ -241,9 +232,23 @@ export function criarBotao(scene, x, y, rotulo, aoClicar, opts = {}) {
     scene.time?.delayedCall(220, () => (jaAcionou = false));
   };
 
-  c.on("pointerover", () => desenhar(true));
-  c.on("pointerout", () => desenhar(false));
-  c.on("pointerdown", () => acionar());
+  // Área de clique = um RETÂNGULO invisível do tamanho do botão (+ folga), filho
+  // do container. Um Rectangle tem a geometria de clique centrada e confiável; o
+  // hitArea customizado no próprio Container era instável (só o MEIO do botão
+  // respondia). Este retângulo cobre o botão inteiro.
+  const hit = scene.add
+    .rectangle(0, 0, L + 16, A + 16, 0xffffff, 0.001)
+    .setInteractive({ useHandCursor: true });
+  c.add(hit);
+  hit.on("pointerover", () => {
+    desenhar(true);
+    c.emit("pointerover");
+  });
+  hit.on("pointerout", () => {
+    desenhar(false);
+    c.emit("pointerout");
+  });
+  hit.on("pointerdown", () => acionar());
 
   c.setFoco = (f) => desenhar(f);
   c.apertar = apertar;
