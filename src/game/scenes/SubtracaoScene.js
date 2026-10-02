@@ -26,6 +26,11 @@ export default class SubtracaoScene extends FaseBase {
     falar(this.fase.enunciado);
   }
 
+  textoOperacao() {
+    const r = this.rodadas?.[this.rodadaAtual];
+    return r ? `${r.a} − ${r.b} = ?` : null;
+  }
+
   montarRodada() {
     if (this.grupo) this.grupo.destroy(true);
     if (this.celulas) this.celulas.forEach((c) => c.destroy());
@@ -240,6 +245,7 @@ export default class SubtracaoScene extends FaseBase {
     this.pararTimerRodada();
     this.celulas.forEach((c) => c.disableInteractive());
     somAcerto();
+    this.revelarOperacao(this.rodada.quantidade);
     const r = this.rodada;
     this.dica.setText("");
 

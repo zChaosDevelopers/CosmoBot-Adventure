@@ -21,6 +21,11 @@ export default class SequenciaScene extends FaseBase {
     falar(this.fase.enunciado);
   }
 
+  textoOperacao() {
+    const r = this.rodadas?.[this.rodadaAtual];
+    return r ? `${r.termos.join(", ")}, ?` : null;
+  }
+
   montarRodada() {
     if (this.grupo) this.grupo.destroy(true);
     this.grupo = this.add.container(0, 0);
@@ -100,6 +105,7 @@ export default class SequenciaScene extends FaseBase {
     this.botoes.forEach((b) => b.disableInteractive());
     this.pararTimerRodada?.();
     somAcerto();
+    this.revelarOperacao(this.rodada.quantidade);
 
     // A caixa "?" revela o número.
     const ultima = this.caixas[this.caixas.length - 1];

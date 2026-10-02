@@ -166,6 +166,9 @@ export default class FaseBase extends Phaser.Scene {
     // Conteúdo da fase começa 30px abaixo do fim do enunciado.
     this.baseY = Math.round(enunciado.y + enunciado.height + 30);
 
+    // Painel da CONTA (fica logo abaixo do enunciado e empurra o conteúdo).
+    this.desenharPainelOperacao();
+
     // Leitor de tela: anuncia a tarefa da rodada (o <canvas> não é lido sozinho).
     anunciar(`${this.fase.modulo}. ${this.fase.enunciado}`);
 
@@ -173,6 +176,63 @@ export default class FaseBase extends Phaser.Scene {
     this.talvezMostrarTutorial();
 
     return centro;
+  }
+
+  // ===== Painel da operação (a CONTA sempre à vista) =====
+  //
+  // Cada fase diz qual é a sua conta sobrescrevendo textoOperacao() (ex.:
+  // "3 + 4 = ?"). O painel fica entre o enunciado e o conteúdo, e continua na
+  // tela o tempo todo enquanto a criança responde — assim ela nunca precisa
+  // lembrar de cabeça qual é a conta, e fica claro QUAL operação está sendo
+  // trabalhada. Quem não tem conta a mostrar devolve null e nada é desenhado.
+  textoOperacao() {
+    return null;
+  }
+
+  desenharPainelOperacao() {
+    const texto = this.textoOperacao?.();
+    if (!texto) return;
+
+    const centro = this.scale.width / 2;
+    const altura = 56;
+    const largura = Math.min(440, this.scale.width - 70);
+    const y = this.baseY + altura / 2;
+
+    const g = this.add.graphics();
+    g.fillStyle(0x0b1120, 0.92);
+    g.fillRoundedRect(centro - largura / 2, y - altura / 2, largura, altura, 16);
+    g.lineStyle(5, TEMA.foco, 1);
+    g.strokeRoundedRect(centro - largura / 2, y - altura / 2, largura, altura, 16);
+    this.grupo.add(g);
+
+    this.operacaoTxt = this.add
+      .text(centro, y, texto, {
+        fontFamily: TEMA.fonte,
+        fontSize: this.fs("34px"),
+        color: "#ffffff",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+    this.operacaoTxt.setStroke("#0b1120", 5);
+    this.grupo.add(this.operacaoTxt);
+
+    // O conteúdo da fase começa abaixo do painel.
+    this.baseY = Math.round(y + altura / 2 + 16);
+  }
+
+  // No acerto, o "?" vira o resultado: a criança vê a conta COMPLETA.
+  revelarOperacao(valor) {
+    if (!this.operacaoTxt || valor == null) return;
+    // Troca a primeira "?" pelo resultado — serve tanto para "3 + 4 = ?" quanto
+    // para a comparação, onde a incógnita fica no meio ("4 ? 6").
+    this.operacaoTxt.setText(this.operacaoTxt.text.replace("?", `${valor}`)).setColor("#2bff88");
+    this.tweens.add({
+      targets: this.operacaoTxt,
+      scale: 1.12,
+      duration: 240,
+      yoyo: true,
+      ease: "Back.easeOut",
+    });
   }
 
   // Demonstração automática na primeira vez (só na 1ª fase, 1ª rodada). Usa a

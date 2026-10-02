@@ -21,6 +21,11 @@ export default class MultiplicacaoScene extends FaseDistribuir {
     return gerarRodadasMultiplicacao(1, facil ? 2 : c.maxGrupos ?? 3, facil ? 3 : c.maxPorGrupo ?? 5)[0];
   }
 
+  textoOperacao() {
+    const r = this.rodadas?.[this.rodadaAtual];
+    return r ? `${r.grupos} × ${r.porGrupo} = ?` : null;
+  }
+
   configRodada(r) {
     return {
       total: r.quantidade, // grupos × porGrupo

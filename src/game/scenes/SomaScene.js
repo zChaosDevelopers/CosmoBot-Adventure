@@ -25,6 +25,11 @@ export default class SomaScene extends FaseBase {
     falar(this.fase.enunciado);
   }
 
+  textoOperacao() {
+    const r = this.rodadas?.[this.rodadaAtual];
+    return r ? `${r.a} + ${r.b} = ?` : null;
+  }
+
   montarRodada() {
     if (this.grupo) this.grupo.destroy(true);
     if (this.pecas) this.pecas.forEach((g) => g.destroy());
@@ -188,6 +193,7 @@ export default class SomaScene extends FaseBase {
     this.pararTimerRodada();
     this.pecas.forEach((c) => c.disableInteractive());
     somAcerto();
+    this.revelarOperacao(this.rodada.quantidade);
     const r = this.rodada;
     this.dica.setText("");
 

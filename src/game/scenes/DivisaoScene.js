@@ -21,6 +21,11 @@ export default class DivisaoScene extends FaseDistribuir {
     return gerarRodadasDivisao(1, facil ? 2 : c.maxDivisor ?? 3, facil ? 3 : c.maxQuociente ?? 5)[0];
   }
 
+  textoOperacao() {
+    const r = this.rodadas?.[this.rodadaAtual];
+    return r ? `${r.total} ÷ ${r.divisor} = ?` : null;
+  }
+
   configRodada(r) {
     return {
       total: r.total,

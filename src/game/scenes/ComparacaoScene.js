@@ -22,6 +22,12 @@ export default class ComparacaoScene extends FaseBase {
     falar(this.fase.enunciado);
   }
 
+  // Aqui a incógnita é o SINAL, não o resultado: "4 ? 6".
+  textoOperacao() {
+    const r = this.rodadas?.[this.rodadaAtual];
+    return r ? `${r.a}  ?  ${r.b}` : null;
+  }
+
   montarRodada() {
     if (this.grupo) this.grupo.destroy(true);
     this.grupo = this.add.container(0, 0);
@@ -32,7 +38,10 @@ export default class ComparacaoScene extends FaseBase {
     const rodada = this.rodadas[this.rodadaAtual];
     this.rodada = rodada;
 
-    const cy = this.baseY + 140;
+    // Com o painel da conta no topo, o conteúdo desce ~70px. Os painéis foram
+    // compactados na mesma medida para os números de baixo não ficarem
+    // escondidos atrás dos botões de resposta.
+    const cy = this.baseY + 100;
     this.ladoEsq = this.desenharLado(centro - 150, cy, rodada.a);
     this.ladoDir = this.desenharLado(centro + 150, cy, rodada.b);
     this.itens = [...this.ladoEsq.dots, ...this.ladoDir.dots];
@@ -60,8 +69,8 @@ export default class ComparacaoScene extends FaseBase {
     const painel = this.add.graphics();
     painel.fillStyle(0x0f172a, 0.5);
     painel.lineStyle(3, 0x475569, 0.9);
-    painel.fillRoundedRect(cx - 95, cy - 105, 190, 210, 16);
-    painel.strokeRoundedRect(cx - 95, cy - 105, 190, 210, 16);
+    painel.fillRoundedRect(cx - 95, cy - 85, 190, 170, 16);
+    painel.strokeRoundedRect(cx - 95, cy - 85, 190, 170, 16);
     this.grupo.add(painel);
 
     const dots = [];
@@ -81,7 +90,7 @@ export default class ComparacaoScene extends FaseBase {
       dots.push(d);
     }
     const num = this.add
-      .text(cx, cy + 122, `${n}`, {
+      .text(cx, cy + 102, `${n}`, {
         fontFamily: TEMA.fonte,
         fontSize: this.fs("40px"),
         color: "#ffffff",
@@ -103,6 +112,7 @@ export default class ComparacaoScene extends FaseBase {
     this.botoes.forEach((b) => b.disableInteractive());
     this.pararTimerRodada?.();
     somAcerto();
+    this.revelarOperacao(sinal); // no painel, "4 ? 6" vira "4 < 6"
 
     // O "?" vira o sinal certo e salta (a criança vê a conta montada).
     this.sinalBox.setText(sinal).setColor("#2bff88");

@@ -20,6 +20,11 @@ export default class ContagemScene extends FaseBase {
     falar(this.fase.enunciado);
   }
 
+  // A "conta" desta fase é a própria contagem: o que se procura é o total.
+  textoOperacao() {
+    return this.rodadas?.[this.rodadaAtual] ? "Total = ?" : null;
+  }
+
   montarRodada() {
     if (this.grupo) this.grupo.destroy(true);
     this.grupo = this.add.container(0, 0);
@@ -74,6 +79,7 @@ export default class ContagemScene extends FaseBase {
     this.bloqueado = true;
     this.botoes.forEach((b) => b.disableInteractive());
     somAcerto();
+    this.revelarOperacao(this.rodadas[this.rodadaAtual].quantidade);
     // Feedback do PORQUÊ: o número contado salta bem grande (reforça "eram N").
     const total = this.rodadas[this.rodadaAtual].quantidade;
     const num = this.add

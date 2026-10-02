@@ -185,6 +185,7 @@ export default class FaseDistribuir extends FaseBase {
     this.zonas.forEach((z) => z.foco.clear());
     this.pecas.forEach((g) => g.disableInteractive());
     somAcerto();
+    this.revelarOperacao(this.rodada.quantidade);
 
     this.dica.setText("");
 
