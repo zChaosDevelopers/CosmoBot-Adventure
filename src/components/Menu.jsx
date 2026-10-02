@@ -35,6 +35,9 @@ export default function Menu({ irPara }) {
         <button className="botao botao-primario" onClick={() => irPara("avatar")}>
           Jogar
         </button>
+        <button className="botao" onClick={() => irPara("doisJogadores")}>
+          👥 2 Jogadores
+        </button>
         <button className="botao" onClick={() => irPara("ranking")}>
           🏆 Ranking
         </button>

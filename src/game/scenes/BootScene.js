@@ -15,7 +15,12 @@ export default class BootScene extends Phaser.Scene {
   }
 
   create() {
-    // Começa pela abertura (historinha do CosmoBot) e depois vai ao mapa.
+    // Modo 2 jogadores vai direto para a disputa; a aventura começa pela
+    // abertura (historinha do CosmoBot) e depois vai ao mapa.
+    if (this.registry.get("modo") === "versus") {
+      this.scene.start("VersusScene");
+      return;
+    }
     this.scene.start("HistoriaScene");
   }
 }

@@ -13,6 +13,7 @@ import {
   gerarRodadasComparacao,
   gerarRodadasSequencia,
   gerarRodadasDesafio,
+  gerarRodadasVersus,
 } from "../src/game/gerarRodadas.js";
 
 let falhas = 0;
@@ -120,6 +121,33 @@ for (let i = 0; i < REPETICOES; i++) {
     ok(typeof r.prompt === "string" && r.prompt.length > 0, "desafio: cada questão tem prompt (conta)");
     ok(typeof r.quantidade === "number", "desafio: resposta deve ser número");
     checarOpcoes(r, `desafio(${r.tipo})`, 5);
+  }
+}
+
+// ===== Modo 2 jogadores (versus): contas rápidas, exatamente 3 opções =====
+const SINAIS = { "+": (a, b) => a + b, "−": (a, b) => a - b, "×": (a, b) => a * b, "÷": (a, b) => a / b };
+for (let i = 0; i < REPETICOES; i++) {
+  for (const operacao of ["soma", "subtracao", "multiplicacao", "divisao", "misto"]) {
+    const rodadas = gerarRodadasVersus(5, operacao);
+    ok(rodadas.length === 5, "versus: deve ter 5 rodadas");
+    for (const r of rodadas) {
+      // 3 opções = uma por tecla de cada jogador (A/S/D e ←/↓/→)
+      checarOpcoes(r, `versus(${operacao})`, 3);
+      ok(Number.isInteger(r.quantidade) && r.quantidade >= 0, `versus: resposta inválida (${r.quantidade})`);
+      if (operacao !== "misto") ok(r.op === operacao, `versus: pediu ${operacao} e veio ${r.op}`);
+      // A conta MOSTRADA tem de bater com a resposta (é o que decide o ponto).
+      const partes = r.prompt.split(" ");
+      ok(partes.length === 3, `versus: prompt inesperado "${r.prompt}"`);
+      const [a, sinal, b] = partes;
+      const calcular = SINAIS[sinal];
+      ok(!!calcular, `versus: sinal desconhecido "${sinal}"`);
+      if (calcular) {
+        const esperado = calcular(Number(a), Number(b));
+        ok(esperado === r.quantidade, `versus: ${r.prompt} = ${r.quantidade}, esperado ${esperado}`);
+      }
+      // Subtração nunca pode dar negativo para criança de 6 a 10 anos.
+      ok(r.quantidade >= 0, `versus: resposta negativa em "${r.prompt}"`);
+    }
   }
 }
 

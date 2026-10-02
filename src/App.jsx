@@ -5,6 +5,7 @@ import Instrucoes from "./components/Instrucoes.jsx";
 import Acessibilidade from "./components/Acessibilidade.jsx";
 import Creditos from "./components/Creditos.jsx";
 import Ranking from "./components/Ranking.jsx";
+import DoisJogadores from "./components/DoisJogadores.jsx";
 
 // O jogo (Phaser, ~1,6 MB) só é baixado quando a criança clica em "Jogar".
 // Assim o menu abre instantâneo — importante no celular/internet lenta.
@@ -14,6 +15,8 @@ const JogoCanvas = lazy(() => import("./components/JogoCanvas.jsx"));
 // recebe a função "irPara" para trocar de tela.
 export default function App() {
   const [tela, setTela] = useState("menu");
+  // Configuração da partida de 2 jogadores (nomes, cores e a operação escolhida).
+  const [versus, setVersus] = useState(null);
 
   // Detecta toque (celular/tablet) e marca no <body> para o CSS deixar os
   // alvos mais confortáveis para o dedo. Reavalia se o aparelho girar.
@@ -33,6 +36,15 @@ export default function App() {
       {tela === "acessibilidade" && <Acessibilidade irPara={setTela} />}
       {tela === "creditos" && <Creditos irPara={setTela} />}
       {tela === "ranking" && <Ranking irPara={setTela} />}
+      {tela === "doisJogadores" && (
+        <DoisJogadores
+          irPara={setTela}
+          aoComecar={(cfg) => {
+            setVersus(cfg);
+            setTela("versus");
+          }}
+        />
+      )}
       {tela === "jogo" && (
         <Suspense
           fallback={
@@ -43,6 +55,18 @@ export default function App() {
           }
         >
           <JogoCanvas irPara={setTela} />
+        </Suspense>
+      )}
+      {tela === "versus" && (
+        <Suspense
+          fallback={
+            <section className="tela" aria-label="Carregando o jogo">
+              <div className="robo-heroi" aria-hidden="true">👥</div>
+              <p className="subtitulo">Preparando a disputa...</p>
+            </section>
+          }
+        >
+          <JogoCanvas irPara={setTela} modo="versus" versus={versus} />
         </Suspense>
       )}
     </main>

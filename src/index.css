@@ -605,3 +605,129 @@ body.toque .opcao-switch { min-height: 56px; }
 }
 .item-ranking .pontos-ranking strong { color: var(--foco); font-size: 1.15em; }
 .item-ranking .pontos-ranking small { color: var(--texto-suave); font-size: 0.8em; }
+
+/* ===== Modo 2 jogadores ===== */
+.jogadores-versus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 10px 0 18px;
+}
+
+.cartao-jogador {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 18px;
+  min-width: 190px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 2px solid rgba(148, 163, 184, 0.3);
+}
+
+.versus-x {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffd43b;
+}
+
+.rotulo-mini {
+  font-size: 0.85rem;
+  color: #ffd8a8;
+  font-weight: 600;
+}
+
+.campo-versus {
+  width: 100%;
+  max-width: 160px;
+  padding: 8px 10px;
+  text-align: center;
+  font-family: inherit;
+  font-size: 1rem;
+  color: #f8f5ff;
+  background: rgba(11, 17, 32, 0.8);
+  border: 2px solid rgba(148, 163, 184, 0.45);
+  border-radius: 12px;
+}
+
+.campo-versus:focus {
+  outline: none;
+  border-color: #ffd43b;
+  box-shadow: 0 0 0 3px rgba(255, 212, 59, 0.25);
+}
+
+.cores-jogador {
+  display: flex;
+  gap: 6px;
+}
+
+.bolinha-cor {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.bolinha-cor.ativa {
+  border-color: #ffffff;
+  transform: scale(1.15);
+}
+
+.bolinha-cor:focus-visible {
+  outline: 3px solid #ffd43b;
+  outline-offset: 2px;
+}
+
+.teclas-jogador {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.teclas-jogador strong {
+  color: #f8f5ff;
+  letter-spacing: 2px;
+}
+
+.escolha-operacao {
+  border: none;
+  margin: 0 0 16px;
+  padding: 0;
+}
+
+.escolha-operacao legend {
+  font-size: 1rem;
+  color: #ffd8a8;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-align: center;
+  width: 100%;
+}
+
+.opcoes-operacao {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.botao-operacao {
+  padding: 10px 16px;
+  font-size: 0.95rem;
+}
+
+.botao-operacao.ativo {
+  background: rgba(255, 212, 59, 0.2);
+  border-color: #ffd43b;
+  color: #ffe066;
+}
+
+@media (max-width: 560px) {
+  .versus-x { display: none; }
+  .cartao-jogador { min-width: 150px; }
+}

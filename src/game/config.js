@@ -11,6 +11,7 @@ import DivisaoScene from "./scenes/DivisaoScene.js";
 import ComparacaoScene from "./scenes/ComparacaoScene.js";
 import SequenciaScene from "./scenes/SequenciaScene.js";
 import DesafioScene from "./scenes/DesafioScene.js";
+import VersusScene from "./scenes/VersusScene.js";
 
 // Qual cena (puzzle) atende cada tipo de fase.
 const CENA_POR_TIPO = {
@@ -71,6 +72,7 @@ export function criarConfig(parent, dados) {
       ComparacaoScene,
       SequenciaScene,
       DesafioScene,
+      VersusScene,
     ],
     callbacks: {
       preBoot: (game) => {
@@ -79,6 +81,10 @@ export function criarConfig(parent, dados) {
         game.registry.set("jogador", dados.jogador);
         game.registry.set("onConcluir", dados.onConcluir);
         game.registry.set("assets", dados.assets || []);
+        // Modo 2 jogadores (opcional): o BootScene decide para onde ir.
+        game.registry.set("modo", dados.modo || "aventura");
+        game.registry.set("versus", dados.versus || null);
+        game.registry.set("onSairVersus", dados.onSairVersus);
       },
     },
   };

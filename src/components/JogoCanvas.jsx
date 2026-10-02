@@ -32,7 +32,8 @@ async function assetsDisponiveis() {
 
 // Componente que "hospeda" o Phaser dentro do React. O React cuida das
 // telas (menu, avatar...) e o Phaser cuida da parte do jogo (o canvas).
-export default function JogoCanvas({ irPara }) {
+// modo: "aventura" (as 8 fases) ou "versus" (disputa de 2 jogadores).
+export default function JogoCanvas({ irPara, modo = "aventura", versus = null }) {
   const containerRef = useRef(null);
   const jogoRef = useRef(null);
   // Pré-visualização em "tela de celular" (útil para testar o layout mobile
@@ -69,6 +70,9 @@ export default function JogoCanvas({ irPara }) {
           jogador: { apelido, avatar },
           onConcluir,
           assets,
+          modo,
+          versus,
+          onSairVersus: () => irPara("menu"),
         })
       );
 
@@ -111,7 +115,7 @@ export default function JogoCanvas({ irPara }) {
       jogoRef.current?.destroy(true);
       jogoRef.current = null;
     };
-  }, [apelido, avatar]);
+  }, [apelido, avatar, modo, versus]);
 
   // Ao trocar entre celular/computador, o tamanho do canvas muda: reajusta a
   // escala e o cache de posição do Phaser para os cliques continuarem certeiros.

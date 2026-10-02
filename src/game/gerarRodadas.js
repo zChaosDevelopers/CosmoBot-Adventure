@@ -288,3 +288,58 @@ export function gerarRodadasDivisao(n = 3, maxDivisor = 4, maxQuociente = 5) {
   }
   return rodadas;
 }
+
+// ===== MODO 2 JOGADORES (versus) =====
+//
+// Contas rápidas para a disputa "quem acerta primeiro". São só 3 opções (uma
+// por tecla de cada jogador), e os números ficam pequenos de propósito: o que
+// decide é a rapidez, não a dificuldade.
+//
+// "operacao" escolhe o que vai cair: "soma", "subtracao", "multiplicacao",
+// "divisao" ou "misto" (sorteia entre as quatro a cada rodada).
+export const OPERACOES_VERSUS = ["soma", "subtracao", "multiplicacao", "divisao", "misto"];
+
+function contaVersus(operacao) {
+  const op = operacao === "misto" ? OPERACOES_VERSUS[entre(0, 3)] : operacao;
+  if (op === "subtracao") {
+    const a = entre(5, 18);
+    const b = entre(1, a - 1);
+    return { op, icone: "➖", prompt: `${a} − ${b}`, quantidade: a - b, min: 0, max: 18, espalhar: 2 };
+  }
+  if (op === "multiplicacao") {
+    const a = entre(2, 9);
+    const b = entre(2, 5);
+    return { op, icone: "✖️", prompt: `${a} × ${b}`, quantidade: a * b, min: 2, max: 45, espalhar: 4 };
+  }
+  if (op === "divisao") {
+    const b = entre(2, 5);
+    const q = entre(2, 9);
+    return { op, icone: "➗", prompt: `${b * q} ÷ ${b}`, quantidade: q, min: 1, max: 10, espalhar: 2 };
+  }
+  const a = entre(2, 12);
+  const b = entre(2, 12);
+  return { op: "soma", icone: "➕", prompt: `${a} + ${b}`, quantidade: a + b, min: 4, max: 24, espalhar: 2 };
+}
+
+export function gerarRodadasVersus(n = 5, operacao = "misto") {
+  const rodadas = [];
+  let anterior = null;
+  for (let i = 0; i < n; i++) {
+    let c;
+    let tentativas = 0;
+    do {
+      c = contaVersus(operacao);
+      tentativas++;
+    } while (c.prompt === anterior && tentativas < 20);
+    anterior = c.prompt;
+    rodadas.push({
+      op: c.op,
+      icone: c.icone,
+      prompt: c.prompt,
+      quantidade: c.quantidade,
+      // exatamente 3 opções: uma para cada tecla de cada jogador
+      opcoes: gerarOpcoes(c.quantidade, c.min, c.max, c.espalhar, 3),
+    });
+  }
+  return rodadas;
+}
