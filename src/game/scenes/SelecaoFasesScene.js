@@ -1,9 +1,15 @@
 import Phaser from "phaser";
 import { TEMA } from "../tema.js";
-import { desenharFundo, criarBotao } from "../desenho.js";
+import { desenharFundo, criarBotao, criarPersonagem, tornarInerte } from "../desenho.js";
 import { falar } from "../../lib/fala.js";
 import { pling } from "../../lib/sfx.js";
 import { podeAgir } from "../teclado.js";
+
+// Onde o CosmoBot pousa em relação ao planeta em foco: à ESQUERDA, fora da
+// zona de clique (um círculo de raio 52 no centro do planeta). Assim ele nunca
+// disputa o toque com o planeta — nem por acidente.
+const COSMO_DX = -80;
+const COSMO_DY = 6;
 
 // Converte "#rrggbb" para número de cor do Phaser.
 function corNum(cor) {
@@ -87,8 +93,53 @@ export default class SelecaoFasesScene extends Phaser.Scene {
 
     this.configurarTecladoMapa(tudoFeito);
 
+    // O CosmoBot do jogador acompanha o foco pelo mapa (item: personagem
+    // controlável). Criado DEPOIS dos planetas para ficar visível por cima.
+    this.criarCosmoDoMapa();
+
     // Foguete decorativo cruza o fundo devagar (só enfeite, não interativo).
     this.criarFogueteDecorativo();
+  }
+
+  // CosmoBot que "voa" até a fase em foco, guiando a criança pelo mapa.
+  //
+  // Duas garantias para NÃO repetir o bug que derrubou essa funcionalidade
+  // (o robô roubava o toque e a fase não abria):
+  //  1. tornarInerte() — ele e seus filhos não respondem ao ponteiro;
+  //  2. ele pousa AO LADO do planeta (não em cima), então nem encosta na
+  //     zona de clique, que é um círculo de raio 52 no centro do planeta.
+  criarCosmoDoMapa() {
+    if (!this.nos.length) return;
+    const cor = this.jogador.avatar || TEMA.coresBotao?.[0] || "#4cc9f0";
+    const n = this.nos[this.focoSel] || this.nos[0];
+    this.cosmo = criarPersonagem(this, n.x + COSMO_DX, n.y + COSMO_DY, cor, 56);
+    this.cosmo.setDepth(6);
+    tornarInerte(this.cosmo);
+
+    // Balancinho de vida (mexe só o ângulo, não atrapalha o voo em x/y).
+    this.tweens.add({
+      targets: this.cosmo,
+      angle: { from: -5, to: 5 },
+      duration: 1200,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+  }
+
+  // Leva o CosmoBot até a fase em foco.
+  moverCosmo() {
+    const n = this.nos[this.focoSel];
+    if (!n || !this.cosmo) return;
+    // Mata só o voo anterior (killTweensOf mataria também o balancinho).
+    this.tweenVoo?.remove();
+    this.tweenVoo = this.tweens.add({
+      targets: this.cosmo,
+      x: n.x + COSMO_DX,
+      y: n.y + COSMO_DY,
+      duration: 260,
+      ease: "Sine.easeInOut",
+    });
   }
 
   // Foguete decorativo cruzando o fundo, na faixa livre acima dos planetas.
@@ -126,6 +177,7 @@ export default class SelecaoFasesScene extends Phaser.Scene {
     const mover = (d) => {
       this.focoSel = Phaser.Math.Wrap(this.focoSel + d, 0, this.nos.length);
       this.desenharFocoRing();
+      this.moverCosmo(); // o CosmoBot voa junto com o anel de foco
       pling(0);
     };
     this.input.keyboard.on("keydown-RIGHT", () => mover(1));

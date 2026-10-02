@@ -176,6 +176,21 @@ export function criarPersonagem(scene, x, y, cor, altura = 110) {
   return desenharRobo(scene, x, y, cor, altura);
 }
 
+// Deixa um objeto (e TODOS os seus filhos) inerte ao ponteiro.
+//
+// Por que isso existe: no mapa de fases o CosmoBot anda por cima dos planetas.
+// Um objeto interativo ali em cima ROUBA o toque do planeta e a fase não abre
+// — foi exatamente o bug que fez o personagem controlável ser removido antes.
+// Chamar isto é o "cinto de segurança": mesmo que um dia criarPersonagem passe
+// a criar filhos interativos (um hover, por exemplo), o clique do planeta
+// continua chegando onde deve.
+export function tornarInerte(obj) {
+  if (!obj) return obj;
+  if (obj.input) obj.removeInteractive();
+  if (Array.isArray(obj.list)) obj.list.forEach(tornarInerte);
+  return obj;
+}
+
 // Botão grande, colorido e RESPONSIVO. opts: { cor, largura, altura, fontSize }.
 // Retorna um container com setFoco(true/false).
 //
