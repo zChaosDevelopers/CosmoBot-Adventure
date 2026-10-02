@@ -467,9 +467,13 @@ export default class FaseBase extends Phaser.Scene {
   // "spam" de Enter (inclusive o herdado da tela anterior), que fazia o jogo
   // responder/pular fases sozinho.
   ativarFoco(evento) {
-    if (this.bloqueado || !podeAgir(this, evento)) return;
-    if (this.focoIndex < 0) return; // nada focado ainda: Enter não responde
-    const alvo = this.botoes?.[this.focoIndex];
+    if (this.bloqueado) return;
+    // Nada focado (ou fase sem botões de opção): Enter não responde — e, importante,
+    // sai ANTES de consumir o anti-spam. Senão, nas fases de arraste (que têm o
+    // próprio Enter) este handler comeria o podeAgir e o Enter não faria nada.
+    if (this.focoIndex < 0 || !this.botoes?.length) return;
+    if (!podeAgir(this, evento)) return;
+    const alvo = this.botoes[this.focoIndex];
     if (alvo) {
       alvo.apertar?.();
       this.escolher(alvo.valor);
