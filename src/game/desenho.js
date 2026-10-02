@@ -265,6 +265,18 @@ export function criarBotao(scene, x, y, rotulo, aoClicar, opts = {}) {
   });
   hit.on("pointerdown", () => acionar());
 
+  // As cenas travam as respostas chamando botao.disableInteractive() depois que
+  // a criança responde. Como quem escuta o toque é o retângulo FILHO (e não o
+  // container), esse disable não chegava nele: o botão continuava com cursor de
+  // mãozinha e acendendo no hover depois de respondido. Repassamos para o hit.
+  // (A resposta em si já estava protegida por this.bloqueado na FaseBase — isto
+  // conserta o acabamento, não um caminho de resposta.)
+  const desligarContainer = c.disableInteractive.bind(c);
+  c.disableInteractive = (...args) => {
+    hit.disableInteractive();
+    return desligarContainer(...args);
+  };
+
   c.setFoco = (f) => desenhar(f);
   c.apertar = apertar;
   return c;
