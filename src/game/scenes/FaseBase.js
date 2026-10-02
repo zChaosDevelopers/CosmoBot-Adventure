@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { TEMA } from "../tema.js";
 import { desenharFundo, criarBotao, criarPersonagem, desenharTiraNave } from "../desenho.js";
 import { lerAcessibilidade, px, ICONE_OPERACAO } from "../acessibilidade.js";
-import { falar } from "../../lib/fala.js";
+import { falar, pararFala } from "../../lib/fala.js";
 import { anunciar } from "../../lib/anunciar.js";
 import { pling, somVitoria, somErro, somEstouro } from "../../lib/sfx.js";
 import { podeAgir } from "../teclado.js";
@@ -26,6 +26,10 @@ export default class FaseBase extends Phaser.Scene {
     this.rodadaAtual = 0;
     this.coletados = 0;
     this.bloqueado = false;
+    // O Phaser REUTILIZA a instância da cena a cada scene.start, então toda
+    // trava de "já estou saindo/entrando" precisa ser religada aqui — senão ela
+    // volta ligada da vez anterior e congela a fase (foi o bug do mapa).
+    this._saindo = false;
     this.erros = 0; // erros na pergunta ATUAL (zera a cada pergunta)
     this.errosEtapa = 0; // erros na etapa INTEIRA (para as estrelas)
     this.mostrarDica = false; // vira true depois que os balões estouram
@@ -54,7 +58,37 @@ export default class FaseBase extends Phaser.Scene {
     desenharFundo(this);
     this.criarTiraNave();
     this.criarRelogio();
+    this.criarBotaoVoltar();
     this.configurarTeclado();
+  }
+
+  // Saída para o mapa, disponível a QUALQUER momento da fase.
+  //
+  // Antes só dava para sair de uma fase CONCLUINDO ela: quem entrasse numa fase
+  // ficava preso ali e não conseguia voltar para rejogar uma anterior sem
+  // recarregar o jogo. Fica no canto superior esquerdo, abaixo do relógio —
+  // longe dos botões de resposta (embaixo) e da dica (lateral direita).
+  //
+  // Sair no meio NÃO perde nada: o progresso só é gravado em concluirEtapa, e as
+  // fases já concluídas continuam registradas em estrelasPorEtapa.
+  criarBotaoVoltar() {
+    this.botaoVoltar = criarBotao(this, 44, 64, "🗺️", () => this.voltarAoMapa(), {
+      largura: 54,
+      altura: 42,
+      fontSize: this.fs("22px"),
+      cor: 0x334155,
+    });
+    // Esc também volta (teclado), sem precisar mirar no botão.
+    this.input.keyboard.on("keydown-ESC", () => this.voltarAoMapa());
+  }
+
+  voltarAoMapa() {
+    if (this._saindo) return;
+    this._saindo = true;
+    pararFala();
+    this.pararTimerRodada?.();
+    this.relogioEvento?.remove();
+    this.scene.start("SelecaoFasesScene");
   }
 
   // Relógio discreto no canto (conta o tempo da fase). Fica FORA do grupo das
@@ -355,7 +389,10 @@ export default class FaseBase extends Phaser.Scene {
     const estrelas = this.errosEtapa === 0 ? 3 : this.errosEtapa <= 2 ? 2 : 1;
     // Guarda por etapa (para mostrar na tira da nave) e recalcula o total.
     const mapa = this.registry.get("estrelasPorEtapa") || {};
-    mapa[this.indiceFase] = estrelas;
+    // Guarda o MELHOR resultado: rejogar uma fase para treinar nunca pode
+    // DIMINUIR o que a criança já tinha conquistado. A tela de conclusão abaixo
+    // mostra as estrelas desta jogada; o que fica registrado é o recorde.
+    mapa[this.indiceFase] = Math.max(estrelas, mapa[this.indiceFase] ?? 0);
     this.registry.set("estrelasPorEtapa", mapa);
     this.registry.set("estrelas", Object.values(mapa).reduce((a, b) => a + b, 0));
     for (let i = 0; i < 3; i++) {
@@ -374,7 +411,11 @@ export default class FaseBase extends Phaser.Scene {
     // ===== BADGE da fase: nível de brilho por RAPIDEZ + ACERTOS (item 13) =====
     const nivel = calcularNivel(this.errosEtapa, tempoFase, this.rodadas?.length || 3);
     const badges = this.registry.get("badges") || {};
-    badges[this.indiceFase] = { nivel, estrelas, tempo: tempoFase };
+    // Mesma regra das estrelas: a badge só melhora, nunca piora ao rejogar.
+    const anterior = badges[this.indiceFase];
+    if (!anterior || nivel >= anterior.nivel) {
+      badges[this.indiceFase] = { nivel, estrelas: mapa[this.indiceFase], tempo: tempoFase };
+    }
     this.registry.set("badges", badges);
     // Ranking: guarda o MELHOR resultado do jogador.
     // - LOCAL (localStorage): sempre, funciona offline.

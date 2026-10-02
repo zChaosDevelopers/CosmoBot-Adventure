@@ -29,6 +29,15 @@ export default class SelecaoFasesScene extends Phaser.Scene {
 
   create() {
     const { width } = this.scale;
+
+    // ATENÇÃO (bug que travava o mapa inteiro): escolher() liga a trava
+    // _entrando para a fase não ser aberta duas vezes (toque + Enter juntos).
+    // O Phaser REUTILIZA a mesma instância da cena a cada scene.start, então a
+    // trava voltava LIGADA do mapa anterior — e, depois da primeira fase,
+    // nenhuma outra abria: nem a próxima, nem as já concluídas. Religar a trava
+    // a cada entrada no mapa é o que conserta os dois casos.
+    this._entrando = false;
+
     this.roteiro = this.registry.get("roteiro") || [];
     this.jogador = this.registry.get("jogador") || {};
     this.estrelas = this.registry.get("estrelasPorEtapa") || {};
