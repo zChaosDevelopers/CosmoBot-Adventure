@@ -8,6 +8,7 @@ import { pling, somVitoria, somErro, somEstouro } from "../../lib/sfx.js";
 import { podeAgir } from "../teclado.js";
 import { calcularNivel, resumirBadges, NIVEL_NOME } from "../badges.js";
 import { chaveJogador, registrarJogador, atualizarPontuacao } from "../../lib/ranking.js";
+import { enviarPontuacaoGlobal } from "../../lib/rankingGlobal.js";
 
 // Base compartilhada por todas as etapas de conserto da nave (painel, comporta,
 // baterias, motores, rota). Cada etapa concreta só precisa: chamar iniciarFase(),
@@ -375,14 +376,25 @@ export default class FaseBase extends Phaser.Scene {
     const badges = this.registry.get("badges") || {};
     badges[this.indiceFase] = { nivel, estrelas, tempo: tempoFase };
     this.registry.set("badges", badges);
-    // Ranking LOCAL (localStorage): guarda o MELHOR resultado do jogador.
+    // Ranking: guarda o MELHOR resultado do jogador.
+    // - LOCAL (localStorage): sempre, funciona offline.
+    // - GLOBAL (Supabase): só quando configurado. É "fire-and-forget":
+    //   qualquer falha é ignorada e o jogo segue normalmente.
     const resumo = resumirBadges(badges, this.totalFases);
-    registrarJogador(this.jogador.apelido, this.jogador.avatar);
-    atualizarPontuacao(chaveJogador(this.jogador.apelido, this.jogador.avatar), {
+    const chaveRanking = chaveJogador(this.jogador.apelido, this.jogador.avatar);
+    const pontuacao = {
       pontos: resumo.pontos,
       estrelas: resumo.estrelas,
       badges: resumo.total,
       perfeito: resumo.perfeito,
+    };
+    registrarJogador(this.jogador.apelido, this.jogador.avatar);
+    atualizarPontuacao(chaveRanking, pontuacao);
+    enviarPontuacaoGlobal({
+      chave: chaveRanking,
+      nome: this.jogador.apelido,
+      icone: this.jogador.avatar,
+      ...pontuacao,
     });
     this.mostrarBadgeConquista(width / 2, height / 2 - 150, this.indiceFase, nivel);
 

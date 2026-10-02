@@ -1,18 +1,50 @@
+import { useEffect, useState } from "react";
 import { listarRanking } from "../lib/ranking.js";
+import { listarRankingGlobal, rankingGlobalAtivo } from "../lib/rankingGlobal.js";
 import RoboSVG from "./RoboSVG.jsx";
 
-// Ranking geral LOCAL (por aparelho): mostra os exploradores por pontuação.
+// Ranking geral dos exploradores por pontuação.
 // Pontos vêm das estrelas + do brilho das badges (ver src/game/badges.js).
+//
+// Se o Supabase estiver configurado, mostra o ranking GLOBAL (todo mundo que
+// joga, em qualquer aparelho). Se não estiver — ou se a internet falhar —
+// cai sozinho no ranking LOCAL (localStorage), como era antes.
 const MEDALHAS = ["🥇", "🥈", "🥉"];
 
+const comPontos = (lista) => (lista || []).filter((j) => (j.pontos || 0) > 0);
+
 export default function Ranking({ irPara }) {
-  const jogadores = listarRanking().filter((j) => (j.pontos || 0) > 0);
+  // Já nasce com o ranking LOCAL: a tela aparece preenchida na hora, sem
+  // piscar o "ninguém pontuou ainda" enquanto o global não chega.
+  const [jogadores, setJogadores] = useState(() => comPontos(listarRanking()));
+  const [carregando, setCarregando] = useState(rankingGlobalAtivo());
+  const [global, setGlobal] = useState(false);
+
+  useEffect(() => {
+    let vivo = true;
+    if (!rankingGlobalAtivo()) return undefined;
+
+    listarRankingGlobal().then((lista) => {
+      if (!vivo) return;
+      if (lista) {
+        setJogadores(comPontos(lista));
+        setGlobal(true);
+      }
+      setCarregando(false);
+    });
+
+    return () => {
+      vivo = false;
+    };
+  }, []);
 
   return (
     <section className="tela tela-ranking" aria-label="Ranking dos exploradores">
-      <h2 className="titulo">🏆 Ranking</h2>
+      <h2 className="titulo">🏆 Ranking {global ? "Global" : ""}</h2>
 
-      {jogadores.length === 0 ? (
+      {carregando && jogadores.length === 0 ? (
+        <p className="subtitulo">Buscando os exploradores do universo… 🚀</p>
+      ) : jogadores.length === 0 ? (
         <p className="subtitulo">
           Ninguém pontuou ainda! Jogue uma fase para aparecer aqui. 🚀
         </p>
