@@ -103,7 +103,7 @@ export default class SubtracaoScene extends FaseBase {
     this.grupo.add(this.dica);
 
     this.criarBotaoDica(() => this.darDica());
-    this.iniciarTimerRodada(20); // ~20s antes de trocar a conta (item 3: tempo curto demais)
+    this.iniciarTimerRodada(28); // ~28s antes de trocar a conta (item 3: tempo curto demais)
   }
 
   // "facil" (após estourar) usa números menores — adapta para quem erra.

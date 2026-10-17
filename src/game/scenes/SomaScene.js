@@ -87,7 +87,7 @@ export default class SomaScene extends FaseBase {
       .text(centro, this.scale.height - 26, "", { fontFamily: TEMA.fonte, fontSize: "16px", color: "#ffa8a8" })
       .setOrigin(0.5);
     this.grupo.add(this.dica);
-    this.iniciarTimerRodada(20); // ~20s antes de trocar a conta (item 3: tempo curto demais)
+    this.iniciarTimerRodada(28); // ~28s antes de trocar a conta (item 3: tempo curto demais)
   }
 
   // Rodada nova (usada quando o tempo acaba). "facil" = números menores.
