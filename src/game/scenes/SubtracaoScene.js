@@ -1,0 +1,301 @@
+import { TEMA } from "../tema.js";
+import { desenharCaixa } from "../desenho.js";
+import { gerarRodadasSubtracao } from "../gerarRodadas.js";
+import { falar } from "../../lib/fala.js";
+import { somAcerto, somErro, pling } from "../../lib/sfx.js";
+import { podeAgir } from "../teclado.js";
+import FaseBase from "./FaseBase.js";
+
+// Etapa 3 — "Encher as Baterias": SUBTRAÇÃO como TIRAR (retirar do total).
+//
+// Antes a criança só CONTAVA as células que sobravam. Agora ela precisa
+// **retirar** (descarregar) a quantidade pedida — o gesto de tirar É a
+// subtração. Ao arrastar as células para o descarte, ela descobre quantas
+// continuam com carga (a − b). Funciona com arraste, toque no descarte e teclado.
+export default class SubtracaoScene extends FaseBase {
+  constructor() {
+    super("SubtracaoScene");
+  }
+
+  create() {
+    this.iniciarFase();
+    const cfg = this.fase.gerar || {};
+    this.rodadas = gerarRodadasSubtracao(cfg.rodadas ?? 3, cfg.min ?? 5, cfg.max ?? 10);
+    this.configurarTecladoDescarte();
+    this.montarRodada();
+    falar(this.fase.enunciado);
+  }
+
+  textoOperacao() {
+    const r = this.rodadas?.[this.rodadaAtual];
+    return r ? `${r.a} − ${r.b} = ?` : null;
+  }
+
+  montarRodada() {
+    if (this.grupo) this.grupo.destroy(true);
+    if (this.celulas) this.celulas.forEach((c) => c.destroy());
+    this.grupo = this.add.container(0, 0);
+    this.celulas = [];
+    this.bloqueado = false;
+    this.erros = 0;
+
+    const centro = this.desenharCabecalho();
+    const rodada = this.rodadas[this.rodadaAtual];
+    this.rodada = rodada;
+
+    // Linha-guia única (o enunciado já pede a ação): quantas descarregar e a
+    // carga inicial da bateria — a informação NOVA desta rodada.
+    const rot = this.add
+      .text(
+        centro,
+        this.baseY,
+        `🔋 Bateria: ${rodada.a} carregadas  •  descarregue ${rodada.b}`,
+        { fontFamily: TEMA.fonte, fontSize: "16px", color: "#ffd8a8" }
+      )
+      .setOrigin(0.5);
+    this.grupo.add(rot);
+
+    // ===== Células carregadas (arrastáveis) =====
+    const cols = Math.min(6, rodada.a);
+    const passo = 48;
+    const topY = this.baseY + 52;
+    const inicioX = centro - ((cols - 1) * passo) / 2;
+    for (let i = 0; i < rodada.a; i++) {
+      const col = i % 6;
+      const row = Math.floor(i / 6);
+      const x = inicioX + col * passo;
+      const y = topY + row * 46;
+      const cor = TEMA.coresCristal[i % TEMA.coresCristal.length];
+      this.celulas.push(this.criarCelula(x, y, cor));
+    }
+
+    // ===== Zona de descarte (uma só) =====
+    const binW = Math.min(360, this.scale.width - 140);
+    const binH = 96;
+    const binY = this.baseY + 214;
+    this.grupo.add(desenharCaixa(this, centro, binY, binW, binH, "#ff6b6b", "🗑️ Descarregar aqui"));
+    this.bin = { x: centro, y: binY, w: binW, h: binH, itens: [] };
+
+    this.contador = this.add
+      .text(centro, binY + binH / 2 + 20, `0 / ${rodada.b}`, {
+        fontFamily: TEMA.fonte,
+        fontSize: "22px",
+        color: "#ffd43b",
+      })
+      .setOrigin(0.5);
+    this.grupo.add(this.contador);
+
+    // Toque na zona: descarrega a próxima célula carregada (acessível).
+    const zona = this.add.rectangle(centro, binY, binW, binH, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
+    zona.on("pointerdown", () => this.descarregarProxima());
+    this.grupo.add(zona);
+
+    this.prepararArraste();
+    this.aoSoltarItem = (obj, p) => this.soltarCelula(obj, p);
+
+    this.dica = this.add
+      .text(centro, this.scale.height - 26, "", { fontFamily: TEMA.fonte, fontSize: "16px", color: "#ffa8a8" })
+      .setOrigin(0.5);
+    this.grupo.add(this.dica);
+
+    this.criarBotaoDica(() => this.darDica());
+    this.iniciarTimerRodada(12); // ~12s antes de trocar a conta
+  }
+
+  // "facil" (após estourar) usa números menores — adapta para quem erra.
+  gerarUmaRodada(facil) {
+    const c = this.fase.gerar || {};
+    const min = c.min ?? 6;
+    const max = facil ? Math.max(min, Math.round((c.max ?? 12) * 0.6)) : c.max ?? 12;
+    return gerarRodadasSubtracao(1, min, max)[0];
+  }
+
+  // Dica VISUAL: marca com um "✕" as células que devem ser tiradas e aponta
+  // a mãozinha para o descarte.
+  darDica() {
+    if (this.bloqueado) return;
+    falar("Tire estas!");
+    const alvo = this.celulas.filter((c) => !c.descarregada).slice(0, this.rodada.b);
+    alvo.forEach((c, i) => {
+      this.time.delayedCall(i * 220, () => {
+        pling(i);
+        this.tweens.add({ targets: c, scale: (c.scale || 1) * 1.4, duration: 190, yoyo: true });
+        const x = this.add
+          .text(c.x, c.y, "✕", { fontFamily: TEMA.fonte, fontSize: "26px", color: "#ff3b5c", fontStyle: "bold" })
+          .setOrigin(0.5);
+        x.setStroke("#0b1120", 4);
+        this.grupo.add(x);
+        this.tweens.add({ targets: x, alpha: 0, duration: 800, delay: 300, onComplete: () => x.destroy() });
+      });
+    });
+    this.time.delayedCall(alvo.length * 220 + 120, () => {
+      if (this.bin) this.apontar(this.bin.x, this.bin.y - this.bin.h / 2);
+    });
+  }
+
+  // Recarrega todas as células (tentar de novo após descarregar demais).
+  recarregarTudo() {
+    [...this.bin.itens].forEach((c) => {
+      c.descarregada = false;
+      c.setFillStyle(c.corViva);
+      c.setAlpha(1);
+      this.tweens.add({ targets: c, x: c.home.x, y: c.home.y, scale: 1, duration: 260, ease: "Back.easeOut" });
+    });
+    this.bin.itens = [];
+    this.atualizarContador();
+    this.bloqueado = false;
+    if (this.dica) this.dica.setText("");
+  }
+
+  criarCelula(x, y, cor) {
+    const c = this.add.circle(x, y, 15, cor);
+    c.setStrokeStyle(3, 0xffffff, 0.6);
+    c.home = { x, y };
+    c.corViva = cor;
+    c.descarregada = false;
+    c.setInteractive({ draggable: true, useHandCursor: true });
+    return c;
+  }
+
+  soltarCelula(cel, pointer) {
+    if (this.bloqueado) {
+      this.voltarParaBateria(cel);
+      return;
+    }
+    const noBin = this.zonaNoPonto([this.bin], pointer.x, pointer.y);
+    if (noBin) this.descarregar(cel);
+    else this.voltarParaBateria(cel);
+  }
+
+  // Descarrega uma célula: apaga (escurece) e leva para o descarte.
+  descarregar(cel) {
+    if (cel.descarregada) {
+      this.reorganizarBin();
+      return;
+    }
+    cel.descarregada = true;
+    cel.setFillStyle(0x334155);
+    cel.setAlpha(0.55);
+    this.bin.itens.push(cel);
+    this.reorganizarBin();
+    somErro(); // som suave (não punitivo) de descarga
+    this.conferir();
+  }
+
+  // Recarrega: devolve a célula à posição original na bateria.
+  voltarParaBateria(cel) {
+    if (cel.descarregada) {
+      this.bin.itens = this.bin.itens.filter((c) => c !== cel);
+      cel.descarregada = false;
+      cel.setFillStyle(cel.corViva);
+      cel.setAlpha(1);
+      this.reorganizarBin();
+    }
+    this.tweens.add({ targets: cel, x: cel.home.x, y: cel.home.y, duration: 180, ease: "Back.easeOut" });
+    this.atualizarContador();
+  }
+
+  reorganizarBin() {
+    const cols = Math.min(8, Math.max(1, this.bin.itens.length));
+    const passo = 34;
+    const inicioX = this.bin.x - ((cols - 1) * passo) / 2;
+    this.bin.itens.forEach((c, i) => {
+      const col = i % 8;
+      const row = Math.floor(i / 8);
+      this.tweens.add({
+        targets: c,
+        x: inicioX + col * passo,
+        y: this.bin.y - 12 + row * 26,
+        duration: 160,
+        ease: "Quad.easeOut",
+      });
+    });
+    this.atualizarContador();
+  }
+
+  atualizarContador() {
+    if (this.contador) this.contador.setText(`${this.bin.itens.length} / ${this.rodada.b}`);
+  }
+
+  descarregarProxima() {
+    if (this.bloqueado) return;
+    const viva = this.celulas.find((c) => !c.descarregada);
+    if (viva) {
+      pling(this.bin.itens.length);
+      this.descarregar(viva);
+    }
+  }
+
+  conferir() {
+    if (this.bloqueado) return;
+    const n = this.bin.itens.length;
+    if (n === this.rodada.b) {
+      this.sucesso();
+    } else if (n > this.rodada.b) {
+      this.bloqueado = true; // trava até recarregar (evita erros em cascata)
+      const estourou = this.registrarErro(this.bin.itens, () => this.gerarUmaRodada(true), "🔁");
+      if (!estourou) this.time.delayedCall(500, () => this.recarregarTudo());
+    } else {
+      this.dica.setText("");
+    }
+  }
+
+  sucesso() {
+    this.bloqueado = true;
+    this.pararTimerRodada();
+    this.celulas.forEach((c) => c.disableInteractive());
+    somAcerto();
+    this.revelarOperacao(this.rodada.quantidade);
+    const r = this.rodada;
+    this.dica.setText("");
+
+    // As que continuam com carga voam para o robô (as descarregadas ficam).
+    const carregadas = this.celulas.filter((c) => !c.descarregada);
+    carregadas.forEach((c) => {
+      const brilho = this.add.circle(c.x, c.y, 6, TEMA.foco, 0.9);
+      this.grupo.add(brilho);
+      this.tweens.add({ targets: brilho, scale: 4, alpha: 0, duration: 500 });
+    });
+
+    const msg = this.add
+      .text(this.scale.width / 2, this.scale.height - 30, `${r.a} − ${r.b} = ${r.quantidade} 🎉`, {
+        fontFamily: TEMA.fonte,
+        fontSize: this.fs("24px"),
+        color: "#ffffff",
+        fontStyle: "bold",
+        align: "center",
+        wordWrap: { width: this.scale.width - 80 },
+      })
+      .setOrigin(0.5)
+      .setScale(0);
+    msg.setStroke("#0b1120", 5);
+    this.grupo.add(msg);
+    this.tweens.add({ targets: msg, scale: 1, duration: 420, ease: "Back.easeOut" });
+
+    falar(`Muito bem! ${r.a} menos ${r.b} é igual a ${r.quantidade}. Sobraram ${r.quantidade} com carga.`);
+    this.itens = carregadas;
+    this.time.delayedCall(1100, () => this.animarColeta(carregadas, () => this.aposAcerto()));
+  }
+
+  aposAcerto() {
+    this.rodadaAtual++;
+    if (this.rodadaAtual >= this.rodadas.length) {
+      this.time.delayedCall(300, () => this.concluirEtapa(this.fase.tarefaOk));
+    } else {
+      this.time.delayedCall(300, () => this.montarRodada());
+    }
+  }
+
+  // ===== Teclado: Enter descarrega a próxima; Backspace recarrega a última =====
+  // podeAgir() ignora tecla SEGURADA (auto-repeat) e limita a frequência — assim
+  // não dá para "mashar" Enter e descarregar tudo sem pensar.
+  configurarTecladoDescarte() {
+    this.input.keyboard.on("keydown-ENTER", (e) => podeAgir(this, e) && this.descarregarProxima());
+    this.input.keyboard.on("keydown-SPACE", (e) => podeAgir(this, e) && this.descarregarProxima());
+    this.input.keyboard.on("keydown-BACKSPACE", () => {
+      if (this.bloqueado) return;
+      const ultima = this.bin?.itens?.[this.bin.itens.length - 1];
+      if (ultima) this.voltarParaBateria(ultima);
+    });
+  }
+}
