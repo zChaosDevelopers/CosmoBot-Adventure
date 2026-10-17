@@ -16,4 +16,8 @@ export const fase01 = {
   enunciado: "Quantas luzes acesas?",
   tarefaOk: "Painel ligado! 💡",
   gerar: { rodadas: 3, min: 3, max: 12 },
+  comoJogar: [
+    "Conte as luzes acesas do painel.",
+    "Toque no número certo (ou use as setas e Enter).",
+  ],
 };

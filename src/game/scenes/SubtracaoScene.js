@@ -19,11 +19,15 @@ export default class SubtracaoScene extends FaseBase {
 
   create() {
     this.iniciarFase();
-    const cfg = this.fase.gerar || {};
-    this.rodadas = gerarRodadasSubtracao(cfg.rodadas ?? 3, cfg.min ?? 5, cfg.max ?? 10);
-    this.configurarTecladoDescarte();
-    this.montarRodada();
-    falar(this.fase.enunciado);
+    // O teclado do descarte só é ligado DEPOIS do pop-up fechar: antes disso
+    // this.bin/this.celulas ainda não existem (só nascem em montarRodada()).
+    this.mostrarInstrucoes(() => {
+      this.configurarTecladoDescarte();
+      const cfg = this.fase.gerar || {};
+      this.rodadas = gerarRodadasSubtracao(cfg.rodadas ?? 3, cfg.min ?? 5, cfg.max ?? 10);
+      this.montarRodada();
+      falar(this.fase.enunciado);
+    });
   }
 
   textoOperacao() {
@@ -99,7 +103,7 @@ export default class SubtracaoScene extends FaseBase {
     this.grupo.add(this.dica);
 
     this.criarBotaoDica(() => this.darDica());
-    this.iniciarTimerRodada(12); // ~12s antes de trocar a conta
+    this.iniciarTimerRodada(20); // ~20s antes de trocar a conta (item 3: tempo curto demais)
   }
 
   // "facil" (após estourar) usa números menores — adapta para quem erra.
@@ -113,7 +117,7 @@ export default class SubtracaoScene extends FaseBase {
   // Dica VISUAL: marca com um "✕" as células que devem ser tiradas e aponta
   // a mãozinha para o descarte.
   darDica() {
-    if (this.bloqueado) return;
+    if (this.bloqueado || this.pausado) return;
     falar("Tire estas!");
     const alvo = this.celulas.filter((c) => !c.descarregada).slice(0, this.rodada.b);
     alvo.forEach((c, i) => {
@@ -290,9 +294,9 @@ export default class SubtracaoScene extends FaseBase {
   // podeAgir() ignora tecla SEGURADA (auto-repeat) e limita a frequência — assim
   // não dá para "mashar" Enter e descarregar tudo sem pensar.
   configurarTecladoDescarte() {
-    this.input.keyboard.on("keydown-ENTER", (e) => podeAgir(this, e) && this.descarregarProxima());
-    this.input.keyboard.on("keydown-SPACE", (e) => podeAgir(this, e) && this.descarregarProxima());
-    this.input.keyboard.on("keydown-BACKSPACE", () => {
+    this.input.keyboard.off("keydown-ENTER").on("keydown-ENTER", (e) => podeAgir(this, e) && this.descarregarProxima());
+    this.input.keyboard.off("keydown-SPACE").on("keydown-SPACE", (e) => podeAgir(this, e) && this.descarregarProxima());
+    this.input.keyboard.off("keydown-BACKSPACE").on("keydown-BACKSPACE", () => {
       if (this.bloqueado) return;
       const ultima = this.bin?.itens?.[this.bin.itens.length - 1];
       if (ultima) this.voltarParaBateria(ultima);

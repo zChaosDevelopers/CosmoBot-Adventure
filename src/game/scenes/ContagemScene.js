@@ -14,10 +14,12 @@ export default class ContagemScene extends FaseBase {
 
   create() {
     this.iniciarFase();
-    const cfg = this.fase.gerar;
-    this.rodadas = gerarRodadas(cfg.rodadas, cfg.min, cfg.max);
-    this.montarRodada();
-    falar(this.fase.enunciado);
+    this.mostrarInstrucoes(() => {
+      const cfg = this.fase.gerar;
+      this.rodadas = gerarRodadas(cfg.rodadas, cfg.min, cfg.max);
+      this.montarRodada();
+      falar(this.fase.enunciado);
+    });
   }
 
   // A "conta" desta fase é a própria contagem: o que se procura é o total.
@@ -123,6 +125,7 @@ export default class ContagemScene extends FaseBase {
   // vez (mostra "conte um a um") e no fim aponta para os botões — NÃO mostra o
   // número final; a criança conta junto e escolhe.
   darDica() {
+    if (this.bloqueado || this.pausado) return;
     falar("Conte comigo, uma de cada vez!");
     this.itens.forEach((c, i) => {
       this.time.delayedCall(i * 340, () => {

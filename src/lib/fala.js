@@ -6,6 +6,8 @@
 // IMPORTANTE: a narração só acontece se estiver ATIVADA pelo jogador (checkbox
 // no menu). Fora isso, o jogo toca apenas os efeitos sonoros normais.
 
+import { duckMusica } from "./musica.js";
+
 let vozPt = null;
 
 // Estado da narração — começa lendo a preferência salva no navegador para que
@@ -45,6 +47,7 @@ export function narracaoEstaAtiva() {
 // Interrompe imediatamente qualquer narração em andamento.
 export function pararFala() {
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  duckMusica(false); // a música volta ao volume normal
 }
 
 export function falar(texto, { pitch = 1.15, rate = 0.9 } = {}) {
@@ -56,6 +59,11 @@ export function falar(texto, { pitch = 1.15, rate = 0.9 } = {}) {
   if (vozPt) u.voice = vozPt;
   u.pitch = pitch; // um pouco mais agudo = mais amigável
   u.rate = rate; // um pouco mais devagar = mais claro para crianças
+  // A música de fundo abaixa enquanto a narração fala ("ducking" — item 6 do
+  // relatório: "evitar que a música prejudique a compreensão das instruções").
+  u.onstart = () => duckMusica(true);
+  u.onend = () => duckMusica(false);
+  u.onerror = () => duckMusica(false);
   window.speechSynthesis.speak(u);
 }
 

@@ -13,5 +13,10 @@ export const fase08 = {
   dificuldade: 8,
   enunciado: "Resolva as contas do guardião!",
   tarefaOk: "Você é um mestre do espaço! 👑",
-  gerar: { rodadas: 6 },
+  // item 5 do relatório: mais vida para o guardião = combate mais equilibrado.
+  gerar: { rodadas: 8 },
+  comoJogar: [
+    "O guardião tem vida: cada conta certa tira um pedaço dela!",
+    "Erre até 3 vezes a mesma conta e a resposta aparece sozinha — o jogo sempre segue em frente.",
+  ],
 };

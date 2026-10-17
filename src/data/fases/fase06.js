@@ -13,4 +13,8 @@ export const fase06 = {
   enunciado: "Qual é o sinal certo?",
   tarefaOk: "Sensores alinhados! ⚖️",
   gerar: { rodadas: 4, max: 9 },
+  comoJogar: [
+    "Veja as duas quantidades de cristais.",
+    "Toque no sinal certo: > (maior), < (menor) ou = (igual).",
+  ],
 };

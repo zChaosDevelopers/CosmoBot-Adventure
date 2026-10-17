@@ -15,10 +15,12 @@ export default class SequenciaScene extends FaseBase {
 
   create() {
     this.iniciarFase();
-    const cfg = this.fase.gerar || {};
-    this.rodadas = gerarRodadasSequencia(cfg.rodadas ?? 4, cfg.max ?? 20);
-    this.montarRodada();
-    falar(this.fase.enunciado);
+    this.mostrarInstrucoes(() => {
+      const cfg = this.fase.gerar || {};
+      this.rodadas = gerarRodadasSequencia(cfg.rodadas ?? 4, cfg.max ?? 20);
+      this.montarRodada();
+      falar(this.fase.enunciado);
+    });
   }
 
   textoOperacao() {
@@ -148,6 +150,7 @@ export default class SequenciaScene extends FaseBase {
 
   // Dica VISUAL: pisca as caixas em ordem mostrando o "+passo" crescer.
   darDica() {
+    if (this.bloqueado || this.pausado) return;
     falar("Veja quanto aumenta de uma para outra!");
     this.setas.forEach((s, i) => {
       this.time.delayedCall(i * 300, () => {

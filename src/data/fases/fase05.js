@@ -13,4 +13,8 @@ export const fase05 = {
   enunciado: "Reparta igual nos tanques.",
   tarefaOk: "Rota traçada! 🧭",
   gerar: { rodadas: 3, maxDivisor: 3, maxQuociente: 5 },
+  comoJogar: [
+    "Arraste (ou toque) o combustível para os tanques, deixando todos IGUAIS.",
+    "Quando acabar de repartir tudo, você descobre quanto foi para cada tanque!",
+  ],
 };

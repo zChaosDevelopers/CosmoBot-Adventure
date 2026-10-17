@@ -83,7 +83,7 @@ export default class SelecaoFasesScene extends Phaser.Scene {
         cor: 0x2bff88,
       });
       b.setFoco(true);
-      this.input.keyboard.on("keydown-ENTER", (e) => {
+      this.input.keyboard.off("keydown-ENTER").on("keydown-ENTER", (e) => {
         if (podeAgir(this, e)) this.decolar();
       });
       falar("Você concluiu todas as fases! Toque em decolar!");
@@ -189,10 +189,13 @@ export default class SelecaoFasesScene extends Phaser.Scene {
       this.moverCosmo(); // o CosmoBot voa junto com o anel de foco
       pling(0);
     };
-    this.input.keyboard.on("keydown-RIGHT", () => mover(1));
-    this.input.keyboard.on("keydown-DOWN", () => mover(1));
-    this.input.keyboard.on("keydown-LEFT", () => mover(-1));
-    this.input.keyboard.on("keydown-UP", () => mover(-1));
+    // off() antes de on(): o mapa é reaberto a cada volta de uma fase, então
+    // sem isso as setas acumulariam um passo extra por visita (item 4).
+    this.input.keyboard.off("keydown-RIGHT").on("keydown-RIGHT", () => mover(1));
+    this.input.keyboard.off("keydown-DOWN").on("keydown-DOWN", () => mover(1));
+    this.input.keyboard.off("keydown-LEFT").on("keydown-LEFT", () => mover(-1));
+    this.input.keyboard.off("keydown-UP").on("keydown-UP", () => mover(-1));
+    this.input.keyboard.off("keydown-ENTER");
     if (!tudoFeito) {
       this.input.keyboard.on("keydown-ENTER", (e) => {
         if (!podeAgir(this, e)) return;

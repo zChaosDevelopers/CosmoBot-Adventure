@@ -16,13 +16,15 @@ export default class DesafioScene extends FaseBase {
 
   create() {
     this.iniciarFase();
-    const cfg = this.fase.gerar || {};
-    this.rodadas = gerarRodadasDesafio(cfg.rodadas ?? 6);
-    this.vidaMax = this.rodadas.length;
-    this.vida = this.vidaMax;
-    this.desenharGuardiao();
-    this.montarRodada();
-    falar("Desafio final! Resolva as contas para vencer o guardião.");
+    this.mostrarInstrucoes(() => {
+      const cfg = this.fase.gerar || {};
+      this.rodadas = gerarRodadasDesafio(cfg.rodadas ?? 6);
+      this.vidaMax = this.rodadas.length;
+      this.vida = this.vidaMax;
+      this.desenharGuardiao();
+      this.montarRodada();
+      falar("Desafio final! Resolva as contas para vencer o guardião.");
+    });
   }
 
   // Guardião + barra de vida (ficam fora de this.grupo para não sumirem a cada rodada).
@@ -49,14 +51,24 @@ export default class DesafioScene extends FaseBase {
     this.bossLayer.add(this.boss);
     this.tweens.add({ targets: this.boss, y: by - 10, duration: 1400, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
 
-    // Barra de vida do guardião.
-    const w = 220;
-    const y = by + 62;
-    this.bossLayer.add(this.add.rectangle(bx, y, w, 12, 0x1e293b, 0.9));
-    this.hpBarra = this.add.rectangle(bx - w / 2, y, w, 12, 0xff3b5c, 1).setOrigin(0, 0.5);
+    // Barra de vida do guardião (item 5: maior, com mais contraste e um número
+    // ao lado — fácil de acompanhar o progresso da batalha à distância).
+    const w = 260;
+    const h = 20;
+    const y = by + 66;
+    const trilho = this.add.rectangle(bx, y, w, h, 0x1e293b, 0.95);
+    trilho.setStrokeStyle(3, 0x475569, 1);
+    this.bossLayer.add(trilho);
+    this.hpBarra = this.add.rectangle(bx - w / 2, y, w, h, 0xff3b5c, 1).setOrigin(0, 0.5);
     this.bossLayer.add(this.hpBarra);
-    const cor = this.add.text(bx, y - 26, "👾 Guardião", { fontFamily: TEMA.fonte, fontSize: this.fs("15px"), color: "#e2e8f0" }).setOrigin(0.5);
+    const cor = this.add.text(bx, y - 34, "👾 Guardião", { fontFamily: TEMA.fonte, fontSize: this.fs("16px"), color: "#e2e8f0", fontStyle: "bold" }).setOrigin(0.5);
     this.bossLayer.add(cor);
+    // Vida em número (ex.: "6/6"), sempre visível por cima da barra.
+    this.hpTxt = this.add
+      .text(bx, y, `${this.vida}/${this.vidaMax}`, { fontFamily: TEMA.fonte, fontSize: this.fs("13px"), color: "#ffffff", fontStyle: "bold" })
+      .setOrigin(0.5);
+    this.hpTxt.setStroke("#0b1120", 3);
+    this.bossLayer.add(this.hpTxt);
   }
 
   montarRodada() {
@@ -143,6 +155,7 @@ export default class DesafioScene extends FaseBase {
   acertarBoss() {
     this.vida = Math.max(0, this.vida - 1);
     this.tweens.add({ targets: this.hpBarra, scaleX: this.vida / this.vidaMax, duration: 300, ease: "Cubic.easeOut" });
+    this.hpTxt?.setText(`${this.vida}/${this.vidaMax}`);
     this.cameras.main.flash(140, 180, 90, 255);
     pling(this.vidaMax - this.vida);
     this.tweens.add({ targets: this.boss, x: this.boss.x + Phaser.Math.Between(-8, 8), duration: 45, yoyo: true, repeat: 4 });

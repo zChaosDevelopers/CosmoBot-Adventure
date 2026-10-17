@@ -12,4 +12,8 @@ export const fase02 = {
   enunciado: "Junte as duas caixas.",
   tarefaOk: "Comporta aberta! 🚪",
   gerar: { rodadas: 3, min: 2, max: 7 },
+  comoJogar: [
+    "Arraste (ou toque) as peças das duas caixas para o núcleo, uma por uma.",
+    "Quando todas estiverem juntas, você descobre a soma!",
+  ],
 };

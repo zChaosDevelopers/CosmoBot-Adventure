@@ -13,4 +13,8 @@ export const fase04 = {
   enunciado: "Encha os motores iguais.",
   tarefaOk: "Motores ligados! 🚀",
   gerar: { rodadas: 3, maxGrupos: 3, maxPorGrupo: 5 },
+  comoJogar: [
+    "Arraste (ou toque) as células para encher cada motor com a MESMA quantidade.",
+    "Motores iguais revelam a multiplicação!",
+  ],
 };

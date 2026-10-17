@@ -13,4 +13,8 @@ export const fase07 = {
   enunciado: "O que vem depois?",
   tarefaOk: "Padrão completo! 🧩",
   gerar: { rodadas: 4, max: 20 },
+  comoJogar: [
+    "Veja os 3 números da sequência.",
+    "Descubra o padrão e toque no número que vem depois.",
+  ],
 };

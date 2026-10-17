@@ -197,7 +197,7 @@ export default class EstacaoScene extends Phaser.Scene {
       fontSize: "23px",
     });
     botao.setFoco(true);
-    this.input.keyboard.on("keydown-ENTER", (e) => {
+    this.input.keyboard.off("keydown-ENTER").on("keydown-ENTER", (e) => {
       if (podeAgir(this, e)) jogarDeNovo();
     });
 

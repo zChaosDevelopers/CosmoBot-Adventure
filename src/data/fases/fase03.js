@@ -13,4 +13,8 @@ export const fase03 = {
   enunciado: "Descarregue as células pedidas.",
   tarefaOk: "Baterias prontas! 🔋",
   gerar: { rodadas: 3, min: 6, max: 12 },
+  comoJogar: [
+    "Arraste (ou toque) as células carregadas para o descarte, a quantidade pedida.",
+    "As que sobrarem com carga são a resposta da subtração!",
+  ],
 };

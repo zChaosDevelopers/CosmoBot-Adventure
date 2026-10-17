@@ -4,6 +4,7 @@ import { desenharFundo, desenharRobo, tornarInerte } from "../desenho.js";
 import { gerarRodadasVersus } from "../gerarRodadas.js";
 import { somAcerto, somErro, pling, somVitoria } from "../../lib/sfx.js";
 import { anunciar } from "../../lib/anunciar.js";
+import { mostrarPopupInstrucoes } from "../popupInstrucoes.js";
 
 // MODO 2 JOGADORES (versus) — disputa rápida no mesmo teclado.
 //
@@ -47,11 +48,25 @@ export default class VersusScene extends Phaser.Scene {
     desenharFundo(this);
     this.desenharTopo();
     this.desenharPlacar();
-    this.montarRodada();
 
-    // Esc sai do modo (volta para o menu do React).
-    this.input.keyboard.on("keydown-ESC", () => this.sair());
-    anunciar("Modo dois jogadores. Jogador 1 usa A, S e D. Jogador 2 usa as setas.");
+    // Esc sai do modo (volta para o menu do React). off() antes do on() evita
+    // acumular listeners se a cena for reaberta (mesmo cuidado do item 4).
+    this.input.keyboard.off("keydown-ESC").on("keydown-ESC", () => this.sair());
+
+    // Item 9: pop-up de instruções antes de liberar a disputa.
+    mostrarPopupInstrucoes(this, {
+      titulo: "2 Jogadores",
+      icone: "👥",
+      linhas: [
+        "Os dois veem a mesma conta e correm para apertar a resposta certa.",
+        "Jogador 1 usa A, S, D. Jogador 2 usa as setas ← ↓ →.",
+        "Quem acertar primeiro leva o ponto!",
+      ],
+      aoFechar: () => {
+        this.montarRodada();
+        anunciar("Modo dois jogadores. Jogador 1 usa A, S e D. Jogador 2 usa as setas.");
+      },
+    });
   }
 
   sair() {
@@ -277,7 +292,9 @@ export default class VersusScene extends Phaser.Scene {
     this.tweens.add({ targets: msg, scale: 1, duration: 300, ease: "Back.easeOut" });
     anunciar(`${jog.nome} marcou. ${this.q.prompt} é ${this.q.quantidade}.`);
 
-    this.time.delayedCall(1400, () => this.proximaRodada());
+    // Item 1: tempo de exibição maior para dar para ler com calma, com a
+    // opção de os jogadores confirmarem com Enter para seguir mais cedo.
+    this.aguardarProximaRodada(2600);
   }
 
   errou(jogador, indice) {
@@ -305,11 +322,26 @@ export default class VersusScene extends Phaser.Scene {
         })
         .setOrigin(0.5);
       this.grupo.add(msg);
-      this.time.delayedCall(1600, () => this.proximaRodada());
+      this.aguardarProximaRodada(2800);
     } else {
       pling(0);
       anunciar(`${jog.nome} errou e espera a próxima rodada.`);
     }
+  }
+
+  // Espera "ms" antes da próxima rodada, mas deixa Enter encurtar a espera —
+  // item 1 do relatório ("permitir que a próxima etapa seja iniciada... mediante
+  // confirmação dos jogadores"). once() garante que só dispara uma vez.
+  aguardarProximaRodada(ms) {
+    let avancou = false;
+    const seguir = () => {
+      if (avancou) return;
+      avancou = true;
+      timer.remove();
+      this.proximaRodada();
+    };
+    const timer = this.time.delayedCall(ms, seguir);
+    this.input.keyboard.off("keydown-ENTER").once("keydown-ENTER", seguir);
   }
 
   proximaRodada() {

@@ -83,8 +83,8 @@ export default class HistoriaScene extends Phaser.Scene {
     const irComecar = (e) => {
       if (podeAgir(this, e)) this.comecar();
     };
-    this.input.keyboard.on("keydown-ENTER", irComecar);
-    this.input.keyboard.on("keydown-SPACE", irComecar);
+    this.input.keyboard.off("keydown-ENTER").on("keydown-ENTER", irComecar);
+    this.input.keyboard.off("keydown-SPACE").on("keydown-SPACE", irComecar);
 
     pling(0);
     falar(`Olá, ${apelido}! ${HISTORIA.join(" ")}`);

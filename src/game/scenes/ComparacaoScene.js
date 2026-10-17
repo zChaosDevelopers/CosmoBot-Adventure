@@ -16,10 +16,12 @@ export default class ComparacaoScene extends FaseBase {
 
   create() {
     this.iniciarFase();
-    const cfg = this.fase.gerar || {};
-    this.rodadas = gerarRodadasComparacao(cfg.rodadas ?? 4, cfg.max ?? 9);
-    this.montarRodada();
-    falar(this.fase.enunciado);
+    this.mostrarInstrucoes(() => {
+      const cfg = this.fase.gerar || {};
+      this.rodadas = gerarRodadasComparacao(cfg.rodadas ?? 4, cfg.max ?? 9);
+      this.montarRodada();
+      falar(this.fase.enunciado);
+    });
   }
 
   // Aqui a incógnita é o SINAL, não o resultado: "4 ? 6".
@@ -178,6 +180,7 @@ export default class ComparacaoScene extends FaseBase {
   // Dica que ENSINA sem entregar a resposta: conta um lado e depois o outro,
   // para a criança comparar sozinha — NÃO destaca qual é o maior.
   darDica() {
+    if (this.bloqueado || this.pausado) return;
     falar("Conte os dois lados e veja qual tem mais!");
     const esq = this.ladoEsq.dots;
     const dir = this.ladoDir.dots;

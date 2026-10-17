@@ -7,6 +7,14 @@ import { ASSETS } from "../game/assets.js";
 import { salvarProgresso } from "../lib/progresso.js";
 import { pararFala } from "../lib/fala.js";
 import { limparAnuncios } from "../lib/anunciar.js";
+import {
+  iniciarMusica,
+  pararMusica,
+  musicaEstaLigada,
+  setMusicaLigada,
+  volumeMusica,
+  setVolumeMusica,
+} from "../lib/musica.js";
 
 // Verifica (via HEAD) quais imagens realmente existem, sem gerar erros 404.
 async function assetsDisponiveis() {
@@ -41,12 +49,43 @@ export default function JogoCanvas({ irPara, modo = "aventura", versus = null })
   // reescala o jogo sozinho e o ResizeObserver reajusta a área de clique.
   const [mobile, setMobile] = useState(false);
   const { apelido, avatar, narracao, setNarracao, somLigado, setSomLigado } = useJogador();
+  // Música de fundo (item 6): independente do som/narração, BEM baixinho por
+  // padrão. Fica em src/lib/musica.js (toca "public/audios/musica-fundo.mp3").
+  const [musicaLigada, setMusicaLigadaState] = useState(() => musicaEstaLigada());
+  const [volume, setVolume] = useState(() => Math.round(volumeMusica() * 100));
 
-  // Ao sair da tela do jogo, para a narração e remove a região de anúncios.
+  // Ao sair da tela do jogo, para a narração, a música e remove a região de anúncios.
   useEffect(() => () => {
     pararFala();
+    pararMusica();
     limparAnuncios();
   }, []);
+
+  // Navegadores bloqueiam áudio com som antes de um gesto do usuário — o
+  // primeiro toque/tecla dentro da área do jogo já conta como esse gesto.
+  useEffect(() => {
+    const iniciar = () => iniciarMusica();
+    const area = containerRef.current;
+    area?.addEventListener("pointerdown", iniciar, { once: true });
+    area?.addEventListener("keydown", iniciar, { once: true });
+    iniciarMusica(); // funciona de primeira se o navegador já permitir (ex.: já houve um clique antes, como o de "Jogar")
+    return () => {
+      area?.removeEventListener("pointerdown", iniciar);
+      area?.removeEventListener("keydown", iniciar);
+    };
+  }, []);
+
+  function alternarMusica() {
+    const novo = !musicaLigada;
+    setMusicaLigada(novo);
+    setMusicaLigadaState(novo);
+  }
+
+  function mudarVolume(e) {
+    const v = Number(e.target.value);
+    setVolume(v);
+    setVolumeMusica(v / 100);
+  }
 
   useEffect(() => {
     let cancelado = false;
@@ -149,6 +188,28 @@ export default function JogoCanvas({ irPara, modo = "aventura", versus = null })
         >
           🦻 Narração
         </button>
+        <button
+          type="button"
+          className={"botao botao-audio-mini" + (musicaLigada ? " ativo" : "")}
+          aria-pressed={musicaLigada}
+          onClick={alternarMusica}
+          title="Ligar ou desligar a música de fundo"
+        >
+          {musicaLigada ? "🎵" : "🔇"} Música
+        </button>
+        {musicaLigada && (
+          <label className="controle-volume" title="Volume da música de fundo">
+            <span aria-hidden="true">🔉</span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={volume}
+              onChange={mudarVolume}
+              aria-label="Volume da música de fundo"
+            />
+          </label>
+        )}
         {/* Ferramenta só de desenvolvimento — não aparece para o usuário final. */}
         {import.meta.env.DEV && (
           <button

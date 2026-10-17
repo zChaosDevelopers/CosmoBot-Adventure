@@ -18,11 +18,15 @@ export default class SomaScene extends FaseBase {
 
   create() {
     this.iniciarFase();
-    const cfg = this.fase.gerar || {};
-    this.rodadas = gerarRodadasSoma(cfg.rodadas ?? 3, cfg.min ?? 2, cfg.max ?? 9);
-    this.configurarTecladoNucleo();
-    this.montarRodada();
-    falar(this.fase.enunciado);
+    // O teclado do núcleo só é ligado DEPOIS do pop-up fechar: antes disso
+    // this.pecas/this.nucleo ainda não existem (só nascem em montarRodada()).
+    this.mostrarInstrucoes(() => {
+      this.configurarTecladoNucleo();
+      const cfg = this.fase.gerar || {};
+      this.rodadas = gerarRodadasSoma(cfg.rodadas ?? 3, cfg.min ?? 2, cfg.max ?? 9);
+      this.montarRodada();
+      falar(this.fase.enunciado);
+    });
   }
 
   textoOperacao() {
@@ -83,7 +87,7 @@ export default class SomaScene extends FaseBase {
       .text(centro, this.scale.height - 26, "", { fontFamily: TEMA.fonte, fontSize: "16px", color: "#ffa8a8" })
       .setOrigin(0.5);
     this.grupo.add(this.dica);
-    this.iniciarTimerRodada(12); // ~12s antes de trocar a conta
+    this.iniciarTimerRodada(20); // ~20s antes de trocar a conta (item 3: tempo curto demais)
   }
 
   // Rodada nova (usada quando o tempo acaba). "facil" = números menores.
@@ -233,10 +237,11 @@ export default class SomaScene extends FaseBase {
   // ===== Teclado: Enter junta a próxima; Backspace devolve a última =====
   // podeAgir() ignora tecla SEGURADA (auto-repeat) e limita a frequência — assim
   // não dá para "mashar" Enter e juntar tudo (passar a fase) sem pensar.
+  // off() antes de on() evita acumular listeners ao reabrir a fase (item 4).
   configurarTecladoNucleo() {
-    this.input.keyboard.on("keydown-ENTER", (e) => podeAgir(this, e) && this.juntarProxima());
-    this.input.keyboard.on("keydown-SPACE", (e) => podeAgir(this, e) && this.juntarProxima());
-    this.input.keyboard.on("keydown-BACKSPACE", () => {
+    this.input.keyboard.off("keydown-ENTER").on("keydown-ENTER", (e) => podeAgir(this, e) && this.juntarProxima());
+    this.input.keyboard.off("keydown-SPACE").on("keydown-SPACE", (e) => podeAgir(this, e) && this.juntarProxima());
+    this.input.keyboard.off("keydown-BACKSPACE").on("keydown-BACKSPACE", () => {
       if (this.bloqueado) return;
       const ultima = this.nucleo?.itens?.[this.nucleo.itens.length - 1];
       if (ultima) this.devolver(ultima);

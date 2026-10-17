@@ -9,6 +9,7 @@ import { podeAgir } from "../teclado.js";
 import { calcularNivel, resumirBadges, NIVEL_NOME } from "../badges.js";
 import { chaveJogador, registrarJogador, atualizarPontuacao } from "../../lib/ranking.js";
 import { enviarPontuacaoGlobal } from "../../lib/rankingGlobal.js";
+import { mostrarPopupInstrucoes } from "../popupInstrucoes.js";
 
 // Base compartilhada por todas as etapas de conserto da nave (painel, comporta,
 // baterias, motores, rota). Cada etapa concreta só precisa: chamar iniciarFase(),
@@ -30,6 +31,7 @@ export default class FaseBase extends Phaser.Scene {
     // trava de "já estou saindo/entrando" precisa ser religada aqui — senão ela
     // volta ligada da vez anterior e congela a fase (foi o bug do mapa).
     this._saindo = false;
+    this.pausado = false; // item 13: pausa do jogo (religado aqui pelo mesmo motivo)
     this.erros = 0; // erros na pergunta ATUAL (zera a cada pergunta)
     this.errosEtapa = 0; // erros na etapa INTEIRA (para as estrelas)
     this.mostrarDica = false; // vira true depois que os balões estouram
@@ -59,7 +61,132 @@ export default class FaseBase extends Phaser.Scene {
     this.criarTiraNave();
     this.criarRelogio();
     this.criarBotaoVoltar();
+    this.criarBotaoPausa();
+    this.criarBotaoAjuda();
     this.configurarTeclado();
+  }
+
+  // ===== Item 9: pop-up de instruções antes de liberar o desafio =====
+  //
+  // Cada cena concreta chama isto logo após iniciarFase(), passando o que
+  // normalmente faria em seguida (gerar rodadas, montar a tela, narrar o
+  // enunciado) como "aoComecar". O pop-up aparece automaticamente só na
+  // PRIMEIRA vez que a criança entra naquela fase (guardado por fase.id no
+  // aparelho); o botão de ajuda (❓) permite reabrir a qualquer momento.
+  mostrarInstrucoes(aoComecar) {
+    this._aoComecarFase = aoComecar;
+    const chave = `cosmobot.instrucoes.${this.fase.id || this.fase.modulo || "fase"}`;
+    let jaVisto = false;
+    try {
+      jaVisto = !!localStorage.getItem(chave);
+    } catch {
+      jaVisto = true; // sem localStorage: não insiste toda vez
+    }
+    if (jaVisto) {
+      aoComecar();
+      return;
+    }
+    try {
+      localStorage.setItem(chave, "1");
+    } catch {
+      /* sem localStorage: só não persiste, segue normalmente */
+    }
+    this.abrirPopupInstrucoes();
+  }
+
+  abrirPopupInstrucoes() {
+    this._instrucoesAbertas = true;
+    mostrarPopupInstrucoes(this, {
+      titulo: this.fase.modulo,
+      icone: this.fase.emoji,
+      linhas: this.comoJogarLinhas(),
+      aoFechar: () => {
+        this._instrucoesAbertas = false;
+        this._aoComecarFase?.();
+      },
+    });
+  }
+
+  // Linhas padrão (ícone + comoJogar da fase, se existir). Cenas específicas
+  // podem sobrescrever comoJogarLinhas() para um texto mais preciso.
+  comoJogarLinhas() {
+    if (Array.isArray(this.fase.comoJogar)) return this.fase.comoJogar;
+    if (this.fase.comoJogar) return [this.fase.comoJogar];
+    return [this.fase.enunciado];
+  }
+
+  // Botão de ajuda (❓): reabre as instruções a qualquer momento, sem mexer no
+  // progresso da rodada atual (fica pausado atrás do pop-up).
+  criarBotaoAjuda() {
+    this.botaoAjuda = criarBotao(this, this.scale.width - 42, 64, "❓", () => this.abrirPopupInstrucoes(), {
+      largura: 54,
+      altura: 42,
+      fontSize: this.fs("20px"),
+      cor: 0x334155,
+    });
+  }
+
+  // ===== Item 13: pausa do jogo =====
+  // Botão (⏸️) + tecla P. Usa this.bloqueado (o mesmo "trava" que já protege
+  // toda resposta/arraste no jogo) para impedir qualquer ação enquanto pausado,
+  // e this.time.paused + tweens.pauseAll() para o relógio e os temporizadores
+  // da rodada pararem de verdade (ninguém avança nem perde tempo pausado).
+  criarBotaoPausa() {
+    this.botaoPausa = criarBotao(this, this.scale.width - 42, 22, "⏸️", () => this.alternarPausa(), {
+      largura: 54,
+      altura: 38,
+      fontSize: this.fs("18px"),
+      cor: 0x334155,
+    });
+  }
+
+  alternarPausa() {
+    if (this._instrucoesAbertas) return; // não sobrepõe com o pop-up de instruções
+    if (this.pausado) this.retomar();
+    else this.pausar();
+  }
+
+  pausar() {
+    if (this.pausado) return;
+    this.pausado = true;
+    this._bloqueadoAntesPausa = this.bloqueado;
+    this.bloqueado = true;
+    this.time.paused = true;
+    this.tweens.pauseAll();
+    pararFala();
+    this.overlayPausa = this.add.container(0, 0).setDepth(1500);
+    const { width, height } = this.scale;
+    const fundo = this.add.rectangle(0, 0, width, height, 0x000000, 0.72).setOrigin(0).setInteractive();
+    this.overlayPausa.add(fundo);
+    const titulo = this.add
+      .text(width / 2, height / 2 - 60, "⏸️ Pausado", {
+        fontFamily: TEMA.fonte,
+        fontSize: this.fs("32px"),
+        color: "#ffd8a8",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5);
+    this.overlayPausa.add(titulo);
+    const botao = criarBotao(this, width / 2, height / 2 + 24, "▶️ Continuar", () => this.retomar(), {
+      largura: 260,
+      altura: 60,
+      fontSize: this.fs("22px"),
+      cor: 0x2bff88,
+    });
+    this.overlayPausa.add(botao);
+    botao.setFoco(true);
+    anunciar("Jogo pausado.");
+  }
+
+  retomar() {
+    if (!this.pausado) return;
+    this.pausado = false;
+    this.bloqueado = this._bloqueadoAntesPausa || false;
+    this.time.paused = false;
+    this.tweens.resumeAll();
+    this.overlayPausa?.destroy(true);
+    this.overlayPausa = null;
+    anunciar("Jogo retomado.");
   }
 
   // Saída para o mapa, disponível a QUALQUER momento da fase.
@@ -78,8 +205,11 @@ export default class FaseBase extends Phaser.Scene {
       fontSize: this.fs("22px"),
       cor: 0x334155,
     });
-    // Esc também volta (teclado), sem precisar mirar no botão.
-    this.input.keyboard.on("keydown-ESC", () => this.voltarAoMapa());
+    // Esc também volta (teclado), sem precisar mirar no botão. off() antes do
+    // on() evita acumular listeners se esta fase for reaberta mais de uma vez
+    // (o Phaser reaproveita a instância da cena) — o mesmo cuidado já usado em
+    // VersusScene.ligarTeclas().
+    this.input.keyboard.off("keydown-ESC").on("keydown-ESC", () => this.voltarAoMapa());
   }
 
   voltarAoMapa() {
@@ -520,7 +650,26 @@ export default class FaseBase extends Phaser.Scene {
 
     falar(mensagem || "Etapa concluída! Muito bem!");
     anunciar(`${mensagem || "Etapa concluída!"} Você ganhou ${estrelas} de 3 estrelas.`);
-    this.time.delayedCall(2200, () => this.avancarFase());
+
+    // Item 12: a próxima ação fica EXPLÍCITA (um botão "Continuar"), em vez de
+    // só esperar um tempo fixo passar — a criança decide quando está pronta.
+    // O avanço automático continua existindo como rede de segurança (mais
+    // longo, para dar tempo de ler), caso ninguém toque em nada.
+    let avancou = false;
+    const seguir = () => {
+      if (avancou) return;
+      avancou = true;
+      this.avancarFase();
+    };
+    const botaoContinuar = criarBotao(this, width / 2, height - 54, "Continuar ▶", seguir, {
+      largura: 220,
+      altura: 54,
+      fontSize: this.fs("20px"),
+      cor: 0x2bff88,
+    });
+    botaoContinuar.setFoco(true);
+    this.input.keyboard.off("keydown-ENTER").once("keydown-ENTER", seguir);
+    this.time.delayedCall(3600, seguir);
   }
 
   // Mostra a insígnia conquistada na tela de conclusão, com brilho conforme o
@@ -565,15 +714,26 @@ export default class FaseBase extends Phaser.Scene {
   }
 
   // ===== Acessibilidade (teclado) =====
+  //
+  // IMPORTANTE (item 4 do relatório — narração/Enter duplicados): o Phaser
+  // REUTILIZA a instância da cena a cada scene.start/restart. Chamar .on()
+  // sem antes dar .off() faz os listeners se ACUMULAREM a cada nova entrada
+  // na fase; depois de jogar a mesma fase algumas vezes, um Enter (ou H)
+  // passava a disparar a MESMA ação várias vezes seguidas (inclusive
+  // repetindo a narração). off() antes de on() garante um único listener por
+  // tecla, sempre — o mesmo padrão já usado em VersusScene.ligarTeclas().
   configurarTeclado() {
-    this.input.keyboard.on("keydown-RIGHT", () => this.moverFoco(1));
-    this.input.keyboard.on("keydown-LEFT", () => this.moverFoco(-1));
-    this.input.keyboard.on("keydown-ENTER", (e) => this.ativarFoco(e));
-    this.input.keyboard.on("keydown-SPACE", (e) => this.ativarFoco(e));
+    this.input.keyboard.off("keydown-RIGHT").on("keydown-RIGHT", () => this.moverFoco(1));
+    this.input.keyboard.off("keydown-LEFT").on("keydown-LEFT", () => this.moverFoco(-1));
+    this.input.keyboard.off("keydown-ENTER").on("keydown-ENTER", (e) => this.ativarFoco(e));
+    this.input.keyboard.off("keydown-SPACE").on("keydown-SPACE", (e) => this.ativarFoco(e));
     // Tecla H = Dica (acessível por teclado; só depois que a dica aparece).
-    this.input.keyboard.on("keydown-H", () => {
+    this.input.keyboard.off("keydown-H").on("keydown-H", () => {
+      if (this.pausado) return;
       if (this.mostrarDica && this.darDica) this.darDica();
     });
+    // Tecla P = Pausa (item 13), alternativa ao botão ⏸️.
+    this.input.keyboard.off("keydown-P").on("keydown-P", () => this.alternarPausa());
   }
 
   // Confirma a opção em foco. Passa por podeAgir(): ignora auto-repetição e o

@@ -19,10 +19,14 @@ import FaseBase from "./FaseBase.js";
 export default class FaseDistribuir extends FaseBase {
   create() {
     this.iniciarFase();
-    this.rodadas = this.gerarRodadasIniciais();
-    this.configurarTecladoZonas();
-    this.montarRodada();
-    falar(this.fase.enunciado);
+    // O teclado das zonas só é ligado DEPOIS do pop-up fechar: antes disso
+    // this.zonas/this.pecas ainda não existem (só nascem em montarRodada()).
+    this.mostrarInstrucoes(() => {
+      this.configurarTecladoZonas();
+      this.rodadas = this.gerarRodadasIniciais();
+      this.montarRodada();
+      falar(this.fase.enunciado);
+    });
   }
 
   montarRodada() {
@@ -95,7 +99,7 @@ export default class FaseDistribuir extends FaseBase {
     this.grupo.add(this.dica);
 
     this.criarBotaoDica(() => this.darDica());
-    this.iniciarTimerRodada(12); // ~12s antes de trocar a conta
+    this.iniciarTimerRodada(20); // ~20s antes de trocar a conta (item 3: tempo curto demais)
   }
 
   criarPeca(x, y, cor) {
@@ -284,13 +288,15 @@ export default class FaseDistribuir extends FaseBase {
   }
 
   // ===== Teclado (← → escolhem a zona; Enter enche; Backspace tira) =====
+  // off() antes de on() evita acumular listeners se a fase for reaberta (ver
+  // o comentário em FaseBase.configurarTeclado — mesmo cuidado, item 4).
   configurarTecladoZonas() {
-    this.input.keyboard.on("keydown-RIGHT", () => this.moverFocoZona(1));
-    this.input.keyboard.on("keydown-LEFT", () => this.moverFocoZona(-1));
+    this.input.keyboard.off("keydown-RIGHT").on("keydown-RIGHT", () => this.moverFocoZona(1));
+    this.input.keyboard.off("keydown-LEFT").on("keydown-LEFT", () => this.moverFocoZona(-1));
     // podeAgir() ignora tecla SEGURADA (auto-repeat) e limita a frequência.
-    this.input.keyboard.on("keydown-ENTER", (e) => podeAgir(this, e) && this.acaoTecladoZona());
-    this.input.keyboard.on("keydown-SPACE", (e) => podeAgir(this, e) && this.acaoTecladoZona());
-    this.input.keyboard.on("keydown-BACKSPACE", () => this.tirarDaZona());
+    this.input.keyboard.off("keydown-ENTER").on("keydown-ENTER", (e) => !this.pausado && podeAgir(this, e) && this.acaoTecladoZona());
+    this.input.keyboard.off("keydown-SPACE").on("keydown-SPACE", (e) => !this.pausado && podeAgir(this, e) && this.acaoTecladoZona());
+    this.input.keyboard.off("keydown-BACKSPACE").on("keydown-BACKSPACE", () => this.tirarDaZona());
   }
 
   moverFocoZona(dir) {

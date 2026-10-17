@@ -19,6 +19,15 @@ function embaralhar(a) {
   return a;
 }
 
+// Dificuldade progressiva (item 11 do relatório): reordena as rodadas já
+// sorteadas da mais FÁCIL para a mais DIFÍCIL, usando "chave" como medida de
+// dificuldade (ex.: a própria quantidade). Não muda nenhum valor sorteado —
+// só a ORDEM — então não afeta as garantias de cada gerador (resultado certo,
+// opções válidas, divisão exata etc.), só a progressão dentro da etapa.
+function porDificuldadeCrescente(lista, chave) {
+  return [...lista].sort((x, y) => chave(x) - chave(y));
+}
+
 // Gera 3 opções: a resposta certa + 2 "quase certas", tudo dentro de [min, max].
 // "espalhar" controla a distância máxima dos distratores (padrão 2). Em fases
 // com números maiores (multiplicação/divisão) um espalhamento maior deixa as
@@ -57,7 +66,7 @@ export function gerarRodadas(n = 3, min = 1, max = 10) {
     // Fases de opção mostram 5 alternativas.
     rodadas.push({ quantidade: q, opcoes: gerarOpcoes(q, min, max, 3, 5) });
   }
-  return rodadas;
+  return porDificuldadeCrescente(rodadas, (r) => r.quantidade);
 }
 
 // Gera N rodadas de SOMA (Fase 2): dois grupos "a" e "b" (cada um de min a max)
@@ -78,7 +87,7 @@ export function gerarRodadasSoma(n = 3, min = 1, max = 5) {
     anterior = soma;
     rodadas.push({ a, b, quantidade: soma, opcoes: gerarOpcoes(soma, somaMin, somaMax) });
   }
-  return rodadas;
+  return porDificuldadeCrescente(rodadas, (r) => r.quantidade);
 }
 
 // Gera N rodadas de SUBTRAÇÃO (Planeta 3 — "Lua Minguante"): mostra um total de
@@ -98,7 +107,8 @@ export function gerarRodadasSubtracao(n = 3, min = 5, max = 12) {
     anterior = resto;
     rodadas.push({ a, b, quantidade: resto, opcoes: gerarOpcoes(resto, 1, max) });
   }
-  return rodadas;
+  // Dificuldade progressiva pelo tamanho da bateria (mais células = mais arrastes).
+  return porDificuldadeCrescente(rodadas, (r) => r.a);
 }
 
 // Gera N rodadas de MULTIPLICAÇÃO (Planeta 4 — "Nebulosa dos Grupos"): mostra
@@ -134,7 +144,7 @@ export function gerarRodadasMultiplicacao(n = 3, maxGrupos = 4, maxPorGrupo = 5)
     } while (produto < 10);
     rodadas[rodadas.length - 1] = { grupos, porGrupo, quantidade: produto, opcoes: gerarOpcoes(produto, 2, produtoMax, 3) };
   }
-  return rodadas;
+  return porDificuldadeCrescente(rodadas, (r) => r.quantidade);
 }
 
 // Gera N rodadas de COMPARAÇÃO (Fase 6 — ">, <, ="): dois lados "a" e "b"
@@ -186,7 +196,8 @@ export function gerarRodadasSequencia(n = 4, max = 20) {
       opcoes: gerarOpcoes(resposta, Math.max(1, resposta - 6), resposta + 6, 2, 5),
     });
   }
-  return rodadas;
+  // Dificuldade progressiva pelo tamanho do passo (passo 1 é bem mais fácil que passo 10).
+  return porDificuldadeCrescente(rodadas, (r) => r.passo);
 }
 
 // Gera N questões do DESAFIO FINAL (Fase 8 — boss de revisão): questões MISTAS
@@ -286,7 +297,7 @@ export function gerarRodadasDivisao(n = 3, maxDivisor = 4, maxQuociente = 5) {
     } while (total < 10);
     rodadas[rodadas.length - 1] = { total, divisor, quantidade: quociente, opcoes: gerarOpcoes(quociente, 1, maxQuociente, 2) };
   }
-  return rodadas;
+  return porDificuldadeCrescente(rodadas, (r) => r.total);
 }
 
 // ===== MODO 2 JOGADORES (versus) =====
