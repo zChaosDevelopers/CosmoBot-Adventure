@@ -133,9 +133,5 @@ export default class ContagemScene extends FaseBase {
         this.tweens.add({ targets: c, scale: (c.scale || 1) * 1.4, duration: 220, yoyo: true });
       });
     });
-    // No fim, convida a escolher (sem dizer qual número é).
-    this.time.delayedCall(this.itens.length * 340 + 250, () => {
-      this.apontar(this.scale.width / 2, this.scale.height - 118, 3);
-    });
   }
 }

@@ -35,6 +35,7 @@ export default class FaseBase extends Phaser.Scene {
     this.erros = 0; // erros na pergunta ATUAL (zera a cada pergunta)
     this.errosEtapa = 0; // erros na etapa INTEIRA (para as estrelas)
     this.mostrarDica = false; // vira true depois que os balões estouram
+    this.dicaUsada = false; // a dica vale 1 uso por fase; errar de novo libera outro uso
 
     // Tutorial de primeira vez: na 1ª fase, se o jogador nunca jogou neste
     // aparelho, mostramos a dica (💡) desde o início e demonstramos a jogada.
@@ -730,7 +731,10 @@ export default class FaseBase extends Phaser.Scene {
     // Tecla H = Dica (acessível por teclado; só depois que a dica aparece).
     this.input.keyboard.off("keydown-H").on("keydown-H", () => {
       if (this.pausado) return;
-      if (this.mostrarDica && this.darDica) this.darDica();
+      if (this.mostrarDica && !this.dicaUsada && this.darDica) {
+        this.dicaUsada = true;
+        this.darDica();
+      }
     });
     // Tecla P = Pausa (item 13), alternativa ao botão ⏸️.
     this.input.keyboard.off("keydown-P").on("keydown-P", () => this.alternarPausa());
@@ -866,6 +870,7 @@ export default class FaseBase extends Phaser.Scene {
   resetarPergunta(gerarNova) {
     this.erros = 0;
     this.mostrarDica = true;
+    this.dicaUsada = false; // errou de novo: libera mais um uso da dica
     if (typeof gerarNova === "function" && this.rodadas) {
       this.rodadas[this.rodadaAtual] = gerarNova();
     }
@@ -876,8 +881,12 @@ export default class FaseBase extends Phaser.Scene {
 
   // Botão de DICA (aparece só depois que os balões estouraram). É só um ÍCONE
   // de lâmpada (💡) com um brilho pulsante — nada de texto para ler.
+  //
+  // Vale 1 uso por fase (this.dicaUsada): depois de clicar, o botão some nas
+  // próximas rodadas. Errar de novo (balões estourando outra vez) libera mais
+  // um uso — ver resetarPergunta().
   criarBotaoDica(aoClicar) {
-    if (!this.mostrarDica) return null;
+    if (!this.mostrarDica || this.dicaUsada) return null;
     // Fica na LATERAL DIREITA, na meia-altura: longe dos botões de resposta
     // (embaixo) e da tira da nave (topo), para não sobrepor nenhuma interação.
     const x = this.scale.width - 42;
@@ -894,12 +903,17 @@ export default class FaseBase extends Phaser.Scene {
       repeat: -1,
       ease: "Sine.easeInOut",
     });
-    const b = criarBotao(this, x, y, "💡", () => aoClicar?.(), {
-      largura: 60,
-      altura: 58,
-      fontSize: "30px",
-      cor: 0x00c2ff,
-    });
+    const b = criarBotao(
+      this,
+      x,
+      y,
+      "💡",
+      () => {
+        this.dicaUsada = true;
+        aoClicar?.();
+      },
+      { largura: 60, altura: 58, fontSize: "30px", cor: 0x00c2ff }
+    );
     this.grupo.add(b);
     return b;
   }
