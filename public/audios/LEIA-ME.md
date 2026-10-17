@@ -9,20 +9,22 @@ Responsável: equipe de Áudio / Conteúdo.
 
 ## Música de fundo (item 6 do relatório de QA)
 
-O sistema de música de fundo já está pronto no código
-(`src/lib/musica.js` + controles em `JogoCanvas.jsx`: tocar/pausar, volume
-independente dos efeitos sonoros, e "ducking" automático — a música abaixa
-sozinha enquanto a narração fala). Só falta o ARQUIVO:
+O sistema de música de fundo está pronto no código (`src/lib/musica.js` +
+controles em `JogoCanvas.jsx`: tocar/pausar, volume independente dos efeitos
+sonoros, e "ducking" automático — a música abaixa sozinha enquanto a narração
+fala) e já toca o arquivo `musica-fundo.mp3` desta pasta, em loop e BEM
+baixinho por padrão (o jogador ajusta o volume ou desliga na barra de áudio
+acima do jogo).
 
-1. Salve a trilha como **`musica-fundo.mp3`** exatamente nesta pasta
-   (`public/audios/musica-fundo.mp3`).
-2. Ela toca em loop, BEM baixinho por padrão (o jogador pode ajustar o volume
-   ou desligar a qualquer momento na barra de áudio acima do jogo).
-3. Se o arquivo não existir, o jogo não quebra — só fica sem música de fundo.
+**Faixa atual (provisória):** "Space Flight" de wipics, licença **CC0**
+(domínio público — uso livre, sem necessidade de crédito):
+<https://opengameart.org/content/space-flight>. Ela entrou só para o sistema
+já funcionar de ponta a ponta enquanto a faixa gerada no Udio não chega.
 
-> Sobre a música indicada pela equipe (gerada no Udio): o link enviado é um
-> player do site deles, que exige login e não oferece um arquivo baixável por
-> fora da conta de quem a gerou. Baixe o MP3 pela própria conta do Udio (botão
-> de download/exportar da faixa) e salve aqui com o nome acima — assim que o
-> arquivo existir, a música toca automaticamente sem precisar mexer em mais
-> nada no código.
+**Para trocar pela música do Udio** (a conta que gerou precisa de assinatura
+paga para exportar o MP3 — a conta grátis não libera o download):
+1. Pela conta do Udio com o download liberado, baixe a faixa como MP3.
+2. Substitua o arquivo `public/audios/musica-fundo.mp3` por ele (mesmo nome).
+3. Pronto — nenhum código precisa mudar.
+
+Se o arquivo for removido/faltar, o jogo não quebra — só fica sem música.

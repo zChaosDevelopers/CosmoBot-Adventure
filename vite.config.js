@@ -31,7 +31,7 @@ export default defineConfig({
       workbox: {
         // O Phaser é grande; aumenta o limite para o jogo caber no cache offline.
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
-        globPatterns: ["**/*.{js,css,html,png,svg,woff2,woff,ttf}"],
+        globPatterns: ["**/*.{js,css,html,png,svg,woff2,woff,ttf,mp3}"],
       },
     }),
   ],
