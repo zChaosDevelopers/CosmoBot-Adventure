@@ -3,7 +3,7 @@ import { TEMA } from "../tema.js";
 import { desenharCaixa } from "../desenho.js";
 import { gerarRodadasSoma } from "../gerarRodadas.js";
 import { falar } from "../../lib/fala.js";
-import { somAcerto, somErro, pling } from "../../lib/sfx.js";
+import { somAcerto, pling } from "../../lib/sfx.js";
 import FaseBase from "./FaseBase.js";
 
 // Etapa 2 — "Abrir a Comporta": SOMA como JUNTAR (reunir dois grupos).
@@ -78,6 +78,14 @@ export default class SomaScene extends FaseBase {
       .text(centro, this.scale.height - 26, "", { fontFamily: TEMA.fonte, fontSize: "16px", color: "#ffa8a8" })
       .setOrigin(0.5);
     this.grupo.add(this.dica);
+    this.iniciarTimerRodada(12); // ~12s antes de trocar a conta
+  }
+
+  // Rodada nova (usada quando o tempo acaba). "facil" = números menores.
+  gerarUmaRodada(facil) {
+    const c = this.fase.gerar || {};
+    const max = facil ? Math.max(c.min ?? 2, Math.round((c.max ?? 7) * 0.7)) : c.max ?? 7;
+    return gerarRodadasSoma(1, c.min ?? 2, max)[0];
   }
 
   criarPecasNaCaixa(cx, cy, qtd, cor) {
@@ -177,6 +185,7 @@ export default class SomaScene extends FaseBase {
 
   sucesso() {
     this.bloqueado = true;
+    this.pararTimerRodada();
     this.pecas.forEach((c) => c.disableInteractive());
     somAcerto();
     const r = this.rodada;
@@ -187,15 +196,19 @@ export default class SomaScene extends FaseBase {
     this.tweens.add({ targets: brilho, scale: 8, alpha: 0, duration: 650 });
 
     const msg = this.add
-      .text(this.scale.width / 2, this.scale.height - 30, `${r.a} + ${r.b} = ${r.quantidade}!`, {
+      .text(this.scale.width / 2, this.scale.height - 30, `${r.a} + ${r.b} = ${r.quantidade} 🎉`, {
         fontFamily: TEMA.fonte,
-        fontSize: "22px",
+        fontSize: this.fs("24px"),
         color: "#ffffff",
+        fontStyle: "bold",
         align: "center",
         wordWrap: { width: this.scale.width - 80 },
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setScale(0);
+    msg.setStroke("#0b1120", 5);
     this.grupo.add(msg);
+    this.tweens.add({ targets: msg, scale: 1, duration: 420, ease: "Back.easeOut" });
 
     falar(`Muito bem! ${r.a} mais ${r.b} é igual a ${r.quantidade}.`);
     this.itens = this.pecas;

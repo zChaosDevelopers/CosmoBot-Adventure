@@ -32,6 +32,7 @@ export default class SubtracaoScene extends FaseBase {
     this.grupo = this.add.container(0, 0);
     this.celulas = [];
     this.bloqueado = false;
+    this.erros = 0;
 
     const centro = this.desenharCabecalho();
     const rodada = this.rodadas[this.rodadaAtual];
@@ -91,6 +92,54 @@ export default class SubtracaoScene extends FaseBase {
       .text(centro, this.scale.height - 26, "", { fontFamily: TEMA.fonte, fontSize: "16px", color: "#ffa8a8" })
       .setOrigin(0.5);
     this.grupo.add(this.dica);
+
+    this.criarBotaoDica(() => this.darDica());
+    this.iniciarTimerRodada(12); // ~12s antes de trocar a conta
+  }
+
+  // "facil" (após estourar) usa números menores — adapta para quem erra.
+  gerarUmaRodada(facil) {
+    const c = this.fase.gerar || {};
+    const min = c.min ?? 6;
+    const max = facil ? Math.max(min, Math.round((c.max ?? 12) * 0.6)) : c.max ?? 12;
+    return gerarRodadasSubtracao(1, min, max)[0];
+  }
+
+  // Dica VISUAL: marca com um "✕" as células que devem ser tiradas e aponta
+  // a mãozinha para o descarte.
+  darDica() {
+    if (this.bloqueado) return;
+    falar("Tire estas!");
+    const alvo = this.celulas.filter((c) => !c.descarregada).slice(0, this.rodada.b);
+    alvo.forEach((c, i) => {
+      this.time.delayedCall(i * 220, () => {
+        pling(i);
+        this.tweens.add({ targets: c, scale: (c.scale || 1) * 1.4, duration: 190, yoyo: true });
+        const x = this.add
+          .text(c.x, c.y, "✕", { fontFamily: TEMA.fonte, fontSize: "26px", color: "#ff3b5c", fontStyle: "bold" })
+          .setOrigin(0.5);
+        x.setStroke("#0b1120", 4);
+        this.grupo.add(x);
+        this.tweens.add({ targets: x, alpha: 0, duration: 800, delay: 300, onComplete: () => x.destroy() });
+      });
+    });
+    this.time.delayedCall(alvo.length * 220 + 120, () => {
+      if (this.bin) this.apontar(this.bin.x, this.bin.y - this.bin.h / 2);
+    });
+  }
+
+  // Recarrega todas as células (tentar de novo após descarregar demais).
+  recarregarTudo() {
+    [...this.bin.itens].forEach((c) => {
+      c.descarregada = false;
+      c.setFillStyle(c.corViva);
+      c.setAlpha(1);
+      this.tweens.add({ targets: c, x: c.home.x, y: c.home.y, scale: 1, duration: 260, ease: "Back.easeOut" });
+    });
+    this.bin.itens = [];
+    this.atualizarContador();
+    this.bloqueado = false;
+    if (this.dica) this.dica.setText("");
   }
 
   criarCelula(x, y, cor) {
@@ -178,7 +227,9 @@ export default class SubtracaoScene extends FaseBase {
     if (n === this.rodada.b) {
       this.sucesso();
     } else if (n > this.rodada.b) {
-      this.dica.setText(`Ops! Descarregue só ${this.rodada.b}. Toque nas apagadas para recarregar.`);
+      this.bloqueado = true; // trava até recarregar (evita erros em cascata)
+      const estourou = this.registrarErro(this.bin.itens, () => this.gerarUmaRodada(true), "🔁");
+      if (!estourou) this.time.delayedCall(500, () => this.recarregarTudo());
     } else {
       this.dica.setText("");
     }
@@ -186,6 +237,7 @@ export default class SubtracaoScene extends FaseBase {
 
   sucesso() {
     this.bloqueado = true;
+    this.pararTimerRodada();
     this.celulas.forEach((c) => c.disableInteractive());
     somAcerto();
     const r = this.rodada;
@@ -200,15 +252,19 @@ export default class SubtracaoScene extends FaseBase {
     });
 
     const msg = this.add
-      .text(this.scale.width / 2, this.scale.height - 30, `${r.a} − ${r.b} = ${r.quantidade}  •  ${r.quantidade} com carga!`, {
+      .text(this.scale.width / 2, this.scale.height - 30, `${r.a} − ${r.b} = ${r.quantidade} 🎉`, {
         fontFamily: TEMA.fonte,
-        fontSize: "20px",
+        fontSize: this.fs("24px"),
         color: "#ffffff",
+        fontStyle: "bold",
         align: "center",
         wordWrap: { width: this.scale.width - 80 },
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setScale(0);
+    msg.setStroke("#0b1120", 5);
     this.grupo.add(msg);
+    this.tweens.add({ targets: msg, scale: 1, duration: 420, ease: "Back.easeOut" });
 
     falar(`Muito bem! ${r.a} menos ${r.b} é igual a ${r.quantidade}. Sobraram ${r.quantidade} com carga.`);
     this.itens = carregadas;

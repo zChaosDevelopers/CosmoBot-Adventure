@@ -81,6 +81,12 @@ export function somVitoria() {
   [523, 659, 784, 1046, 1318].forEach((f, i) => bip(f, 0.22, "triangle", 0.2, i * 0.14));
 }
 
+// "Pop!" — estouro do balão (curto e engraçado, nunca punitivo).
+export function somEstouro() {
+  bip(520, 0.05, "square", 0.15);
+  bip(300, 0.12, "square", 0.12, 0.04);
+}
+
 // Quando a aba fica oculta, pausamos o áudio; ao voltar, retomamos (se ligado).
 if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", () => {

@@ -13,7 +13,7 @@ export const fase01 = {
   cor: "#22d3ee",
   tipoPuzzle: "contagem",
   dificuldade: 1,
-  enunciado: "Conte as luzes acesas do painel e escolha o número certo!",
+  enunciado: "Quantas luzes acesas?",
   tarefaOk: "Painel ligado! 💡",
   gerar: { rodadas: 3, min: 3, max: 12 },
 };

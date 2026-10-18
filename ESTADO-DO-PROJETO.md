@@ -4,7 +4,7 @@
 > parou**, o que está pronto/testado, o que ficou pendente e como rodar. Leia primeiro a
 > seção 2 (onde paramos) e a seção 6 (pendências).
 
-- **Data deste registro:** 08/09/2026
+- **Data deste registro:** 11/09/2026
 - **Versão:** 0.2.0
 - **Stack:** React (telas) + Phaser 3 (jogo) + Supabase (progresso) + Vite (build)
 - **Documentação completa:** [`DOCUMENTACAO.md`](DOCUMENTACAO.md) e
@@ -161,3 +161,83 @@ g.scene.start('DivisaoScene');            // ou Soma/Subtracao/Multiplicacao/Con
 5. **Redesenho das etapas 2–5 como manipuláveis** (juntar, retirar, agrupar, repartir) +
    faixa etária ampliada para **6–10 anos** + quantidades menores no arraste.
 6. Testes das 5 etapas rodando o jogo; build sem erros.
+
+### Evoluções de 11/09/2026
+7. **Contas de 2 dígitos** garantidas nos últimos níveis (multiplicação e divisão;
+   subtração até 12). Ver `gerarRodadas.js` (garante ao menos 1 conta ≥ 10 por rodada) e
+   os `gerar` em `data/fases/fase03-05.js`.
+8. **Mecânica de erro "balões incham → estouram"**: a cada erro as bolinhas crescem; no
+   **5º erro (limite)** elas estouram (pop) e **vem outra conta**. Código compartilhado em
+   `FaseBase.js` (`registrarErro`, `estourarBaloes`, `resetarPergunta`, `LIMITE_ERROS = 5`);
+   aplicado em Contagem, Soma? (soma não erra), Subtração, Multiplicação e Divisão.
+9. **Botão de Dica** (💡) aparece **depois que os balões estouram** (`mostrarDica`):
+   Contagem conta junto; Multiplicação/Divisão enchem o 1º motor/tanque como exemplo;
+   Subtração destaca as células a tirar. Ver `criarBotaoDica` em `FaseBase.js` e `darDica`
+   em cada cena.
+10. **Cores mais vivas** (`tema.js`) e **menos texto** (enunciados curtos — o público é
+    criança de 6 a 10 anos).
+
+> Observação de teste: o preview automático (pane) **congela o requestAnimationFrame**, então
+> animações por tempo (estouro, dica) não aparecem lá — a LÓGICA foi verificada (erros 1→5,
+> estouro no 5, nova conta, botão de dica surge). No navegador real as animações rodam normais.
+> A performance em runtime é leve (bolinhas são círculos estáticos, sem tween infinito; fundo
+> com 60 estrelas num só objeto; sem backdrop-filter na tela do jogo; botões respondem no
+> `pointerdown`). Vale um teste rápido de FPS no aparelho-alvo (celular).
+
+### Evoluções (mais recentes) — hub, acessibilidade e saúde do código
+21. **Estrelas no mapa da nave:** as ⭐ ganhas em cada etapa aparecem embaixo de cada
+    estação da tira de progresso (não só no final). Guardadas em `registry "estrelasPorEtapa"`.
+22. **Dica pelo teclado:** tecla **H** aciona a dica (quando disponível). Ver `configurarTeclado`
+    em `FaseBase.js`.
+23. **Leitor de tela (aria-live):** `src/lib/anunciar.js` cria uma região escondida que anuncia
+    a tarefa da rodada, o estouro e a conclusão da etapa (o `<canvas>` do Phaser não é lido
+    sozinho). Limpa ao sair do jogo (`JogoCanvas.jsx`).
+24. **Geradores de conta puros + TESTE:** `gerarRodadas.js` não depende mais do Phaser (RNG
+    local). Novo teste `scripts/test-geradores.mjs` roda com **`npm test`** e verifica que
+    soma/subtração/multiplicação/divisão nunca geram valor errado (divisão exata, 2 dígitos
+    garantidos, sempre 3 opções). O teste pegou e corrigiu 2 coisas: o formato do objeto de
+    divisão (quociente fica em `quantidade`) e `gerarOpcoes` que raramente dava < 3 opções.
+25. **Refatoração (#11 parcial):** Divisão e Multiplicação (quase idênticas) agora herdam de
+    `FaseDistribuir.js` — toda a mecânica de distribuir em zonas mora lá; cada cena só define
+    seus rótulos/geradores/texto. Soma e Subtração continuam separadas (mecânica diferente:
+    juntar num núcleo / retirar para o descarte) — unificá-las traria mais risco que ganho.
+26. **PWA (instalável + offline):** `vite-plugin-pwa` no `vite.config.js` gera service worker +
+    manifest; o app inteiro é pré-cacheado (bom para tablets de sala). Ícone = a estrela.
+
+> **Deploy:** vai para a **Vercel** (top-level) e depois é embutido no Cruzeiro HUB via iframe.
+> Só na Vercel (top-level) o PWA instala de fato; dentro do iframe ele roda normal como jogo.
+
+### Evoluções de 16/09/2026 (tarde) — acessibilidade, recompensa e performance
+13. **Limite de erro = 3** (era 5): 3 erros → balões estouram → conta nova.
+14. **Dica bem mais VISUAL** (criança ainda aprende a ler): o botão virou só um ícone
+    💡 com brilho pulsante; as demonstrações usam mãozinha 👇, números saltando (contagem),
+    ✕ nas células a tirar (subtração) e preenchem um tanque/motor de exemplo (div/mult).
+    Avisos de erro viraram emoji (🔁). Narração **continua desligada por padrão** (só liga
+    se o usuário quiser).
+15. **Acessibilidade DENTRO do jogo** (`acessibilidade.js`): "Contraste alto" → fundo preto
+    sólido; "Fonte grande" → textos-chave aumentam. Ícone da operação (➕➖✖️➗🔢) na frente
+    do enunciado como pista visual.
+16. **Recompensa por etapa: estrelas** ⭐ (0 erros = 3; até 2 = 2; mais = 1), somadas e
+    mostradas no final (`registry "estrelas"`). Zeram ao recomeçar.
+17. **Dificuldade adaptativa (leve):** depois de estourar, a conta nova vem MAIS FÁCIL
+    (números menores) — ajuda quem erra. Ver `gerarUmaRodada(facil)` em cada cena.
+18. **Carregamento rápido (code-splitting):** o Phaser virou chunk separado via `React.lazy`
+    no [App.jsx]. Menu = ~156 KB (abre instantâneo); jogo (~1,5 MB) só baixa ao clicar Jogar.
+19. **Botão "Ver no celular"** agora só aparece em modo dev (`import.meta.env.DEV`).
+20. **Limpeza:** removidos imports não usados (`somErro`) das cenas.
+
+> **Pendente (recomendado como passo isolado): item #11 — refatorar as 4 cenas manipuláveis
+> numa base comum.** É melhoria SÓ interna (sem mudança visível) e mexe nas 4 cenas ao mesmo
+> tempo, então tem risco de regressão. Como o preview congela o RAF (não dá para testar
+> animações ao vivo), o certo é fazer isso sozinho, com teste real no navegador depois — não
+> junto de 8 outras mudanças. Combinado de fazer a seguir.
+
+### Evoluções de 16/09/2026
+11. **Aba de Créditos** no menu (`Creditos.jsx` + rota em `App.jsx`), com os 8 integrantes
+    (nome, cargo com ícone e RGM). A lista rola por dentro para o botão Voltar não sumir.
+12. **Selo da Universidade Cruzeiro do Sul** no canto do painel (`LogoCruzeiro.jsx` + CSS
+    `.logo-cruzeiro`), aparece em todas as telas. A logo usada é uma **estrela galáctica**
+    (arquivo em `public/assets/logo-cruzeiro.png`, fundo transparente). Como é uma estrela,
+    NÃO há recorte circular — só um halo de nebulosa + brilho ao redor. Para trocar a imagem,
+    basta substituir esse arquivo. Obs.: o PNG está em ~1,4 MB; dá para otimizar para ~256px
+    se quiser aliviar o carregamento no celular.

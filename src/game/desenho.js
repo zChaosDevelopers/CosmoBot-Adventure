@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { TEMA } from "./tema.js";
+import { lerAcessibilidade } from "./acessibilidade.js";
 
 // Clareia/escurece uma cor (fator > 1 clareia, < 1 escurece).
 function ajustar(cor, fator) {
@@ -25,6 +26,15 @@ function corParaNumero(cor) {
 // como enfeite se disponíveis.
 export function desenharFundo(scene) {
   const { width, height } = scene.scale;
+
+  // Contraste alto: fundo PRETO sólido (sem nebulosa nem estrelas) para os
+  // elementos do jogo ficarem com o máximo de contraste e menos "poluição".
+  if (lerAcessibilidade().contraste) {
+    const g = scene.add.graphics();
+    g.fillStyle(0x000000, 1);
+    g.fillRect(0, 0, width, height);
+    return;
+  }
 
   if (scene.textures.exists("fundo")) {
     scene.add.image(width / 2, height / 2, "fundo").setDisplaySize(width, height);
@@ -305,6 +315,15 @@ export function desenharTiraNave(scene, etapas, idx, opts = {}) {
         })
         .setOrigin(0.5);
       cont.add(ic);
+    }
+
+    // Estrelas ganhas naquela etapa (recompensa visível já no mapa da nave).
+    const estrelas = opts.estrelas && opts.estrelas[i];
+    if (feito && estrelas) {
+      const est = scene.add
+        .text(x, y + 21, `⭐${estrelas}`, { fontFamily: TEMA.fonte, fontSize: "13px", color: "#ffe000" })
+        .setOrigin(0.5);
+      cont.add(est);
     }
   }
   return cont;
