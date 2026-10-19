@@ -479,9 +479,19 @@ body.toque .tela-jogo .botao-audio-mini {
   min-height: 0;
   transition: max-width 0.25s ease;
 }
-.canvas-jogo { width: 100%; height: 100%; }
-/* Tamanho e centralização do canvas ficam por conta do Phaser (Scale.FIT). */
+/* O Phaser (Scale.FIT) define o TAMANHO do canvas; a centralização é só deste
+   flex (o Phaser está em NO_CENTER) — assim nunca fica torto nem deslocado. */
+.canvas-jogo {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .canvas-jogo canvas {
+  display: block;
+  flex: none;
+  margin: 0 !important;
   border-radius: var(--raio);
   box-shadow: 0 16px 40px rgba(6, 2, 24, 0.5);
 }

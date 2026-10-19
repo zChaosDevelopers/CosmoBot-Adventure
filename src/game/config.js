@@ -55,7 +55,8 @@ export function criarConfig(parent, dados) {
     disableContextMenu: true,
     scale: {
       mode: Phaser.Scale.FIT,
-      autoCenter: Phaser.Scale.CENTER_BOTH,
+      // A centralização é feita pelo CSS (.canvas-jogo é um flex centralizado).
+      autoCenter: Phaser.Scale.NO_CENTER,
       // Limites do redimensionamento automático: não deixa o jogo minúsculo
       // (janelas estreitas) e permite preencher telas grandes (até 4K) no modo
       // tela cheia.
