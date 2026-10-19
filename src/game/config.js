@@ -56,11 +56,11 @@ export function criarConfig(parent, dados) {
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
-      // item 7: limites de segurança para o redimensionamento automático —
-      // evita que o jogo fique minúsculo (janelas estreitas/iframe pequeno) ou
-      // gigante (monitores muito largos) antes do CSS (.canvas-jogo) entrar.
+      // Limites do redimensionamento automático: não deixa o jogo minúsculo
+      // (janelas estreitas) e permite preencher telas grandes (até 4K) no modo
+      // tela cheia.
       min: { width: 280, height: 210 },
-      max: { width: 1600, height: 1200 },
+      max: { width: 3840, height: 2880 },
     },
     // BootScene (carrega imagens) → HistoriaScene (abertura) → EstacaoScene
     // (hub/mapa) → fases (puzzles de matemática).

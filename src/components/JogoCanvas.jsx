@@ -16,6 +16,12 @@ import {
   setVolumeMusica,
 } from "../lib/musica.js";
 
+// Espera uma promessa, mas desiste depois de "ms" — assim uma rede lenta ou
+// bloqueada (ex.: Google Fonts fora do ar) nunca deixa o jogo preso na tela preta.
+function comLimite(promessa, ms) {
+  return Promise.race([promessa, new Promise((resolver) => setTimeout(resolver, ms))]);
+}
+
 // Verifica (via HEAD) quais imagens realmente existem, sem gerar erros 404.
 async function assetsDisponiveis() {
   const base = import.meta.env.BASE_URL;
@@ -23,7 +29,10 @@ async function assetsDisponiveis() {
   await Promise.all(
     ASSETS.map(async (a) => {
       try {
-        const r = await fetch(`${base}${a.arquivo}`, { method: "HEAD" });
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 4000);
+        const r = await fetch(`${base}${a.arquivo}`, { method: "HEAD", signal: ctrl.signal });
+        clearTimeout(timer);
         // O Vite (dev) responde 200 com o index.html para arquivos ausentes
         // (fallback de SPA). Por isso confirmamos que o conteúdo é IMAGEM —
         // assim os assets opcionais que faltam usam o desenho procedural sem
@@ -48,6 +57,12 @@ export default function JogoCanvas({ irPara, modo = "aventura", versus = null })
   // sem sair do computador). Só muda a largura do quadro — o Phaser (Scale.FIT)
   // reescala o jogo sozinho e o ResizeObserver reajusta a área de clique.
   const [mobile, setMobile] = useState(false);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(false);
+  // Tela cheia de verdade (API do navegador). O jogo já ocupa a janela inteira;
+  // este botão esconde também a barra do navegador.
+  const podeTelaCheia = typeof document !== "undefined" && !!document.documentElement.requestFullscreen;
+  const [telaCheia, setTelaCheia] = useState(false);
   const { apelido, avatar, narracao, setNarracao, somLigado, setSomLigado } = useJogador();
   // Música de fundo (item 6): independente do som/narração, BEM baixinho por
   // padrão. Fica em src/lib/musica.js (toca "public/audios/musica-fundo.mp3").
@@ -75,6 +90,24 @@ export default function JogoCanvas({ irPara, modo = "aventura", versus = null })
     };
   }, []);
 
+  useEffect(() => {
+    const aoMudar = () => {
+      setTelaCheia(!!document.fullscreenElement);
+      // O tamanho disponível mudou: reajusta a escala do jogo.
+      [60, 300].forEach((ms) => setTimeout(() => jogoRef.current?.scale?.refresh(), ms));
+    };
+    document.addEventListener("fullscreenchange", aoMudar);
+    return () => {
+      document.removeEventListener("fullscreenchange", aoMudar);
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    };
+  }, []);
+
+  function alternarTelaCheia() {
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    else document.documentElement.requestFullscreen?.().catch(() => {});
+  }
+
   function alternarMusica() {
     const novo = !musicaLigada;
     setMusicaLigada(novo);
@@ -93,8 +126,8 @@ export default function JogoCanvas({ irPara, modo = "aventura", versus = null })
     async function iniciar() {
       // Espera a fonte carregar e descobre quais imagens existem.
       try {
-        await document.fonts.load("700 32px Fredoka");
-        await document.fonts.ready;
+        await comLimite(document.fonts.load("700 32px Fredoka"), 2500);
+        await comLimite(document.fonts.ready, 1000);
       } catch {
         /* segue com a fonte padrão */
       }
@@ -103,17 +136,24 @@ export default function JogoCanvas({ irPara, modo = "aventura", versus = null })
 
       const onConcluir = ({ faseId, status }) => salvarProgresso({ apelido, faseId, status });
 
-      jogoRef.current = new Phaser.Game(
-        criarConfig(containerRef.current, {
-          fases,
-          jogador: { apelido, avatar },
-          onConcluir,
-          assets,
-          modo,
-          versus,
-          onSairVersus: () => irPara("menu"),
-        })
-      );
+      try {
+        jogoRef.current = new Phaser.Game(
+          criarConfig(containerRef.current, {
+            fases,
+            jogador: { apelido, avatar },
+            onConcluir,
+            assets,
+            modo,
+            versus,
+            onSairVersus: () => irPara("menu"),
+          })
+        );
+      } catch (e) {
+        console.error("Falha ao iniciar o jogo:", e);
+        setErro(true);
+        return;
+      }
+      setCarregando(false);
 
       // Confiabilidade do clique: o Phaser guarda em cache a POSIÇÃO do canvas
       // para converter o toque/clique em coordenadas do jogo. Se o layout mudar
@@ -210,6 +250,17 @@ export default function JogoCanvas({ irPara, modo = "aventura", versus = null })
             />
           </label>
         )}
+        {podeTelaCheia && (
+          <button
+            type="button"
+            className={"botao botao-audio-mini" + (telaCheia ? " ativo" : "")}
+            aria-pressed={telaCheia}
+            onClick={alternarTelaCheia}
+            title="Entrar ou sair da tela cheia"
+          >
+            {telaCheia ? "🗗 Sair da tela cheia" : "⛶ Tela cheia"}
+          </button>
+        )}
         {/* Ferramenta só de desenvolvimento — não aparece para o usuário final. */}
         {import.meta.env.DEV && (
           <button
@@ -222,6 +273,13 @@ export default function JogoCanvas({ irPara, modo = "aventura", versus = null })
             {mobile ? "🖥️ Ver no computador" : "📱 Ver no celular"}
           </button>
         )}
+        <button
+          type="button"
+          className="botao botao-audio-mini botao-voltar"
+          onClick={() => irPara("menu")}
+        >
+          ← Menu
+        </button>
       </div>
 
       <div className={"moldura-canvas" + (mobile ? " mobile" : "")}>
@@ -231,10 +289,15 @@ export default function JogoCanvas({ irPara, modo = "aventura", versus = null })
           role="application"
           aria-label="Área do jogo da estação espacial"
         />
+        {carregando && !erro && (
+          <p className="jogo-aviso" role="status">🚀 Preparando a nave...</p>
+        )}
+        {erro && (
+          <p className="jogo-aviso" role="alert">
+            Não foi possível iniciar o jogo neste aparelho. Recarregue a página (Ctrl+F5).
+          </p>
+        )}
       </div>
-      <button className="botao" onClick={() => irPara("menu")}>
-        Voltar ao menu
-      </button>
     </section>
   );
 }

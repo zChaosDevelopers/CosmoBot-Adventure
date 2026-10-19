@@ -441,29 +441,69 @@ body.contraste-alto .tela::before { display: none; }
 /* O canvas do Phaser cobre quase todo o cartão, então dispensamos o desfoque
    de fundo aqui (é caro e disputa GPU com o jogo — deixava a tela travando). */
 .tela-jogo {
-  /* Quase tela cheia. Limita pela ALTURA (116vh) para o canvas 4:3 não passar
-     de ~87vh e evitar rolagem vertical. */
-  max-width: min(1180px, 95vw, 116vh);
-  padding: 12px;
-  gap: 12px;
+  /* TELA CHEIA: o jogo ocupa a janela inteira (não é mais um bloco no meio da
+     página). O Phaser (Scale.FIT) encaixa o canvas 4:3 no espaço que sobra e
+     reajusta sozinho quando a janela muda de tamanho ou o aparelho gira. */
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  padding: 6px;
+  gap: 6px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  animation: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  background: rgba(20, 10, 51, 0.92);
+  background: radial-gradient(ellipse at center, #1a0f45 0%, #0b1120 100%);
 }
-.moldura-canvas { width: 100%; transition: max-width 0.25s ease; }
-.canvas-jogo { width: 100%; }
+.tela-jogo::before { display: none; }
+/* Barra de botões compacta no topo, para sobrar o máximo de espaço ao jogo. */
+.tela-jogo .barra-audio { gap: 6px; flex: 0 0 auto; }
+.tela-jogo .botao-audio-mini,
+body.toque .tela-jogo .botao-audio-mini {
+  min-height: 34px;
+  padding: 4px 12px;
+  font-size: 0.85em;
+}
+.tela-jogo .controle-volume { min-height: 34px; }
+.botao-voltar { opacity: 1; }
+.moldura-canvas {
+  position: relative;
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+  transition: max-width 0.25s ease;
+}
+.canvas-jogo { width: 100%; height: 100%; }
+/* Tamanho e centralização do canvas ficam por conta do Phaser (Scale.FIT). */
 .canvas-jogo canvas {
-  width: 100% !important;
-  height: auto !important;
   border-radius: var(--raio);
   box-shadow: 0 16px 40px rgba(6, 2, 24, 0.5);
+}
+.jogo-aviso {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+  font-size: 1.3em;
+  font-weight: 600;
+  pointer-events: none;
 }
 
 /* Pré-visualização "tela de celular": estreita o quadro e desenha uma moldura
    de aparelho ao redor. O Phaser (Scale.FIT) reescala o jogo para caber. */
 .moldura-canvas.mobile {
   max-width: 390px;
-  margin: 6px auto 2px;
+  margin: 0 auto;
   padding: 14px 10px;
   border: 3px solid rgba(255, 255, 255, 0.16);
   border-radius: 32px;
