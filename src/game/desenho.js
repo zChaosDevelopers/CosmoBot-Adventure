@@ -209,8 +209,17 @@ export function criarBotao(scene, x, y, rotulo, aoClicar, opts = {}) {
   const visual = scene.add.container(0, 0);
   const g = scene.add.graphics();
 
+  // Botão "desativado" (ex.: dica já usada): cinza, sem destaque e sem clique.
+  let desativado = false;
   const desenhar = (destaque) => {
     g.clear();
+    if (desativado) {
+      g.fillStyle(0x475569, 1);
+      g.fillRoundedRect(-L / 2, -A / 2, L, A, 26);
+      g.lineStyle(7, 0x334155, 1);
+      g.strokeRoundedRect(-L / 2, -A / 2, L, A, 26);
+      return;
+    }
     g.fillStyle(destaque ? corClara : cor, 1);
     g.fillRoundedRect(-L / 2, -A / 2, L, A, 26);
     g.lineStyle(7, destaque ? TEMA.foco : ajustar(cor, 0.7), 1);
@@ -239,7 +248,7 @@ export function criarBotao(scene, x, y, rotulo, aoClicar, opts = {}) {
   // direito". No pointerdown a resposta é imediata e nunca se perde.
   let jaAcionou = false;
   const acionar = () => {
-    if (jaAcionou) return;
+    if (jaAcionou || desativado) return;
     jaAcionou = true;
     apertar();
     aoClicar();
@@ -277,8 +286,15 @@ export function criarBotao(scene, x, y, rotulo, aoClicar, opts = {}) {
     return desligarContainer(...args);
   };
 
-  c.setFoco = (f) => desenhar(f);
+  c.setFoco = (f) => desenhar(desativado ? false : f);
   c.apertar = apertar;
+  // Deixa o botão cinza e inerte (não responde mais a clique nem ao hover).
+  c.desativar = () => {
+    desativado = true;
+    desenhar(false);
+    t.setAlpha(0.45);
+    hit.disableInteractive();
+  };
   return c;
 }
 

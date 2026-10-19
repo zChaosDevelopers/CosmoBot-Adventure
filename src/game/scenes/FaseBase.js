@@ -733,6 +733,7 @@ export default class FaseBase extends Phaser.Scene {
       if (this.pausado) return;
       if (this.mostrarDica && !this.dicaUsada && this.darDica) {
         this.dicaUsada = true;
+        this.desativarBotaoDica();
         this.darDica();
       }
     });
@@ -894,7 +895,7 @@ export default class FaseBase extends Phaser.Scene {
     // Brilho pulsante atrás, para a criança perceber que ali tem ajuda.
     const glow = this.add.circle(x, y, 32, 0x00c2ff, 0.4);
     this.grupo.add(glow);
-    this.tweens.add({
+    const pulso = this.tweens.add({
       targets: glow,
       scale: 1.6,
       alpha: 0.08,
@@ -909,13 +910,45 @@ export default class FaseBase extends Phaser.Scene {
       y,
       "💡",
       () => {
+        if (this.dicaUsada) return;
         this.dicaUsada = true;
+        this.desativarBotaoDica();
         aoClicar?.();
       },
       { largura: 60, altura: 58, fontSize: "30px", cor: 0x00c2ff }
     );
     this.grupo.add(b);
+    // Guarda para poder deixar o botão cinza depois do 1º uso (clique OU tecla H).
+    this.botaoDica = { botao: b, glow, pulso };
     return b;
+  }
+
+  // Dica usada: o brilho some e o botão fica cinza/inerte até a dica ser liberada
+  // de novo (errar de novo → resetarPergunta → novo botão).
+  desativarBotaoDica() {
+    const d = this.botaoDica;
+    if (!d) return;
+    d.pulso?.stop();
+    d.glow?.setAlpha(0);
+    d.botao?.desativar?.();
+  }
+
+  // Pulso de "destaque" que NUNCA acumula: se já havia um pulso rodando no mesmo
+  // objeto, ele é interrompido e o tamanho volta ao original antes de recomeçar.
+  // (Sem isso, apertar Dica várias vezes seguidas multiplicava o tamanho —
+  // cada pulso partia da escala já aumentada pelo anterior.)
+  pulsar(alvo, fator = 1.4, duracao = 200) {
+    if (!alvo || !alvo.active) return;
+    if (alvo.__escalaBase === undefined) alvo.__escalaBase = alvo.scale || 1;
+    alvo.__pulso?.stop();
+    alvo.setScale(alvo.__escalaBase);
+    alvo.__pulso = this.tweens.add({
+      targets: alvo,
+      scale: alvo.__escalaBase * fator,
+      duration: duracao,
+      yoyo: true,
+      onComplete: () => alvo.setScale(alvo.__escalaBase),
+    });
   }
 
   // Mãozinha que "pula" apontando para um ponto — dica 100% visual.

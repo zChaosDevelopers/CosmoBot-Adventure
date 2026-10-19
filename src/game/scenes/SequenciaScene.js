@@ -156,7 +156,7 @@ export default class SequenciaScene extends FaseBase {
       this.time.delayedCall(i * 300, () => {
         pling(i);
         s.setAlpha(1);
-        this.tweens.add({ targets: s, scale: 1.3, duration: 200, yoyo: true });
+        this.pulsar(s, 1.3, 200);
       });
     });
   }

@@ -123,7 +123,7 @@ export default class SubtracaoScene extends FaseBase {
     alvo.forEach((c, i) => {
       this.time.delayedCall(i * 220, () => {
         pling(i);
-        this.tweens.add({ targets: c, scale: (c.scale || 1) * 1.4, duration: 190, yoyo: true });
+        this.pulsar(c, 1.4, 190);
         const x = this.add
           .text(c.x, c.y, "✕", { fontFamily: TEMA.fonte, fontSize: "26px", color: "#ff3b5c", fontStyle: "bold" })
           .setOrigin(0.5);

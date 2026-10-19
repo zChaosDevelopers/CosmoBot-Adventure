@@ -130,7 +130,7 @@ export default class ContagemScene extends FaseBase {
     this.itens.forEach((c, i) => {
       this.time.delayedCall(i * 340, () => {
         pling(i);
-        this.tweens.add({ targets: c, scale: (c.scale || 1) * 1.4, duration: 220, yoyo: true });
+        this.pulsar(c, 1.4, 220);
       });
     });
   }

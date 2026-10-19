@@ -187,14 +187,14 @@ export default class ComparacaoScene extends FaseBase {
     esq.forEach((d, i) => {
       this.time.delayedCall(i * 180, () => {
         pling(i);
-        this.tweens.add({ targets: d, scale: 1.4, duration: 160, yoyo: true });
+        this.pulsar(d, 1.4, 160);
       });
     });
     const off = esq.length * 180 + 350;
     dir.forEach((d, i) => {
       this.time.delayedCall(off + i * 180, () => {
         pling(i);
-        this.tweens.add({ targets: d, scale: 1.4, duration: 160, yoyo: true });
+        this.pulsar(d, 1.4, 160);
       });
     });
   }
