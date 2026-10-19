@@ -35,7 +35,10 @@ export default class FaseBase extends Phaser.Scene {
     this.erros = 0; // erros na pergunta ATUAL (zera a cada pergunta)
     this.errosEtapa = 0; // erros na etapa INTEIRA (para as estrelas)
     this.mostrarDica = false; // vira true depois que os balões estouram
-    this.dicaUsada = false; // a dica vale 1 uso por fase; errar de novo libera outro uso
+    // Cada vez que os balões estouram (3 respostas erradas na mesma conta) o
+    // jogador GANHA 1 uso da dica. Usou → o botão fica cinza até o próximo estouro.
+    this.dicasDisponiveis = 0;
+    this.botaoDica = null;
 
     // Tutorial de primeira vez: na 1ª fase, se o jogador nunca jogou neste
     // aparelho, mostramos a dica (💡) desde o início e demonstramos a jogada.
@@ -47,7 +50,10 @@ export default class FaseBase extends Phaser.Scene {
       tutorialVisto = true;
     }
     this.primeiraVezJogo = this.indiceFase === 0 && !tutorialVisto;
-    if (this.primeiraVezJogo) this.mostrarDica = true;
+    if (this.primeiraVezJogo) {
+      this.mostrarDica = true;
+      this.dicasDisponiveis = 1; // tutorial: a 1ª dica já vem liberada
+    }
 
     // Acessibilidade dentro do jogo: contraste alto e fonte grande.
     this.a11y = lerAcessibilidade();
@@ -731,11 +737,7 @@ export default class FaseBase extends Phaser.Scene {
     // Tecla H = Dica (acessível por teclado; só depois que a dica aparece).
     this.input.keyboard.off("keydown-H").on("keydown-H", () => {
       if (this.pausado) return;
-      if (this.mostrarDica && !this.dicaUsada && this.darDica) {
-        this.dicaUsada = true;
-        this.desativarBotaoDica();
-        this.darDica();
-      }
+      if (this.mostrarDica && this.darDica) this.usarDica();
     });
     // Tecla P = Pausa (item 13), alternativa ao botão ⏸️.
     this.input.keyboard.off("keydown-P").on("keydown-P", () => this.alternarPausa());
@@ -871,7 +873,7 @@ export default class FaseBase extends Phaser.Scene {
   resetarPergunta(gerarNova) {
     this.erros = 0;
     this.mostrarDica = true;
-    this.dicaUsada = false; // errou de novo: libera mais um uso da dica
+    this.dicasDisponiveis += 1; // 3 erros seguidos → ganha 1 uso da dica
     if (typeof gerarNova === "function" && this.rodadas) {
       this.rodadas[this.rodadaAtual] = gerarNova();
     }
@@ -883,11 +885,10 @@ export default class FaseBase extends Phaser.Scene {
   // Botão de DICA (aparece só depois que os balões estouraram). É só um ÍCONE
   // de lâmpada (💡) com um brilho pulsante — nada de texto para ler.
   //
-  // Vale 1 uso por fase (this.dicaUsada): depois de clicar, o botão some nas
-  // próximas rodadas. Errar de novo (balões estourando outra vez) libera mais
-  // um uso — ver resetarPergunta().
+  // Vale 1 uso a cada estouro de balões (3 respostas erradas na mesma conta —
+  // ver resetarPergunta). Com 0 usos disponíveis o botão aparece CINZA e inerte.
   criarBotaoDica(aoClicar) {
-    if (!this.mostrarDica || this.dicaUsada) return null;
+    if (!this.mostrarDica) return null;
     // Fica na LATERAL DIREITA, na meia-altura: longe dos botões de resposta
     // (embaixo) e da tira da nave (topo), para não sobrepor nenhuma interação.
     const x = this.scale.width - 42;
@@ -909,28 +910,32 @@ export default class FaseBase extends Phaser.Scene {
       x,
       y,
       "💡",
-      () => {
-        if (this.dicaUsada) return;
-        this.dicaUsada = true;
-        this.desativarBotaoDica();
-        aoClicar?.();
-      },
+      () => this.usarDica(aoClicar),
       { largura: 60, altura: 58, fontSize: "30px", cor: 0x00c2ff }
     );
     this.grupo.add(b);
-    // Guarda para poder deixar o botão cinza depois do 1º uso (clique OU tecla H).
+    // Guarda para poder deixar o botão cinza depois do uso (clique OU tecla H).
     this.botaoDica = { botao: b, glow, pulso };
+    if (this.dicasDisponiveis <= 0) this.desativarBotaoDica(); // sem usos: já nasce cinza
     return b;
   }
 
-  // Dica usada: o brilho some e o botão fica cinza/inerte até a dica ser liberada
-  // de novo (errar de novo → resetarPergunta → novo botão).
+  // Gasta 1 uso da dica (botão ou tecla H). Sem usos disponíveis não faz nada.
+  // Zerou → o botão fica cinza até o próximo estouro de balões liberar outro.
+  usarDica(acao) {
+    if (this.dicasDisponiveis <= 0 || this.pausado || this.bloqueado) return;
+    this.dicasDisponiveis -= 1;
+    if (this.dicasDisponiveis <= 0) this.desativarBotaoDica();
+    (acao || this.darDica)?.call(this);
+  }
+
+  // O brilho some e o botão fica cinza/inerte.
   desativarBotaoDica() {
     const d = this.botaoDica;
-    if (!d) return;
+    if (!d || !d.botao?.scene) return; // botão já destruído (rodada trocou)
     d.pulso?.stop();
     d.glow?.setAlpha(0);
-    d.botao?.desativar?.();
+    d.botao.desativar?.();
   }
 
   // Pulso de "destaque" que NUNCA acumula: se já havia um pulso rodando no mesmo
