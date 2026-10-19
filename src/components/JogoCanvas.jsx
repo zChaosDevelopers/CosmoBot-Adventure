@@ -10,8 +10,6 @@ import { limparAnuncios } from "../lib/anunciar.js";
 import {
   iniciarMusica,
   pararMusica,
-  musicaEstaLigada,
-  setMusicaLigada,
   volumeMusica,
   setVolumeMusica,
 } from "../lib/musica.js";
@@ -63,10 +61,10 @@ export default function JogoCanvas({ irPara, modo = "aventura", versus = null })
   // este botão esconde também a barra do navegador.
   const podeTelaCheia = typeof document !== "undefined" && !!document.documentElement.requestFullscreen;
   const [telaCheia, setTelaCheia] = useState(false);
-  const { apelido, avatar, narracao, setNarracao, somLigado, setSomLigado } = useJogador();
-  // Música de fundo (item 6): independente do som/narração, BEM baixinho por
-  // padrão. Fica em src/lib/musica.js (toca "public/audios/musica-fundo.mp3").
-  const [musicaLigada, setMusicaLigadaState] = useState(() => musicaEstaLigada());
+  // "Som" liga/desliga efeitos e música de fundo juntos (ver JogadorContext).
+  // A narração fica só em Acessibilidade, no Menu.
+  const { apelido, avatar, somLigado, setSomLigado } = useJogador();
+  // Volume da música de fundo, BEM baixinho por padrão (src/lib/musica.js).
   const [volume, setVolume] = useState(() => Math.round(volumeMusica() * 100));
 
   // Ao sair da tela do jogo, para a narração, a música e remove a região de anúncios.
@@ -106,12 +104,6 @@ export default function JogoCanvas({ irPara, modo = "aventura", versus = null })
   function alternarTelaCheia() {
     if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
     else document.documentElement.requestFullscreen?.().catch(() => {});
-  }
-
-  function alternarMusica() {
-    const novo = !musicaLigada;
-    setMusicaLigada(novo);
-    setMusicaLigadaState(novo);
   }
 
   function mudarVolume(e) {
@@ -212,32 +204,11 @@ export default function JogoCanvas({ irPara, modo = "aventura", versus = null })
           className={"botao botao-audio-mini" + (somLigado ? " ativo" : "")}
           aria-pressed={somLigado}
           onClick={() => setSomLigado(!somLigado)}
-          title="Ligar ou desligar os efeitos sonoros"
+          title="Ligar ou desligar o som (efeitos e música)"
         >
           {somLigado ? "🔊" : "🔈"} Som
         </button>
-        <button
-          type="button"
-          className={"botao botao-audio-mini" + (narracao ? " ativo" : "")}
-          aria-pressed={narracao}
-          onClick={() => {
-            if (narracao) pararFala();
-            setNarracao(!narracao);
-          }}
-          title="Ligar ou desligar a narração em voz alta"
-        >
-          🦻 Narração
-        </button>
-        <button
-          type="button"
-          className={"botao botao-audio-mini" + (musicaLigada ? " ativo" : "")}
-          aria-pressed={musicaLigada}
-          onClick={alternarMusica}
-          title="Ligar ou desligar a música de fundo"
-        >
-          {musicaLigada ? "🎵" : "🔇"} Música
-        </button>
-        {musicaLigada && (
+        {somLigado && (
           <label className="controle-volume" title="Volume da música de fundo">
             <span aria-hidden="true">🔉</span>
             <input

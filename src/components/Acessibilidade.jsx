@@ -52,7 +52,7 @@ export default function Acessibilidade({ irPara }) {
         />
         <span className="opcao-narracao-texto">
           <span className="icone-narracao" aria-hidden="true">🔊</span>
-          Efeitos sonoros do jogo
+          Som do jogo (efeitos e música)
         </span>
       </label>
 

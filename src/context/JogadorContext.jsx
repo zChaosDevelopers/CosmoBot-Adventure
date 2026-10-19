@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { setNarracaoAtiva } from "../lib/fala.js";
 import { setSomLigado as setSomLigadoSfx } from "../lib/sfx.js";
+import { setMusicaLigada } from "../lib/musica.js";
 
 // Guarda as informações do jogador (avatar, apelido) e as opções de
 // acessibilidade, salvando tudo no navegador (localStorage) — sem enviar
@@ -49,10 +50,12 @@ export function JogadorProvider({ children }) {
     setNarracaoAtiva(narracao);
   }, [narracao]);
 
-  // Persiste o som e mantém a lib de efeitos sincronizada.
+  // Persiste o som e mantém as libs sincronizadas. "Som" é um interruptor só:
+  // liga/desliga os efeitos E a música de fundo juntos.
   useEffect(() => {
     localStorage.setItem("somLigado", somLigado);
     setSomLigadoSfx(somLigado);
+    setMusicaLigada(somLigado);
   }, [somLigado]);
 
   // Setters que atualizam o estado do React E a lib na hora (evita "corrida"
@@ -63,6 +66,7 @@ export function JogadorProvider({ children }) {
   }
   function setSomLigado(v) {
     setSomLigadoSfx(v);
+    setMusicaLigada(v);
     setSomLigadoState(v);
   }
 
