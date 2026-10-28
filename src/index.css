@@ -798,3 +798,7 @@ body.toque .opcao-switch { min-height: 56px; }
   .versus-x { display: none; }
   .cartao-jogador { min-width: 150px; }
 }
+
+/* Celular/tablet: o modo 2 jogadores usa botões na tela (tela dividida), então as
+   teclas A S D / setas não precisam aparecer. */
+body.toque .teclas-jogador { display: none; }

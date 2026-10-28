@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { listarRanking } from "../lib/ranking.js";
 import { listarRankingGlobal, rankingGlobalAtivo } from "../lib/rankingGlobal.js";
+import { nomeSeguro } from "../lib/filtroNomes.js";
 import RoboSVG from "./RoboSVG.jsx";
 
 // Ranking geral dos exploradores por pontuação.
@@ -59,7 +60,7 @@ export default function Ranking({ irPara }) {
                 <RoboSVG cor={j.icone} tamanho={40} />
               </span>
               <span className="nome-ranking">
-                {j.nome} {j.perfeito && <span title="Aventura perfeita!">👑</span>}
+                {nomeSeguro(j.nome)} {j.perfeito && <span title="Aventura perfeita!">👑</span>}
               </span>
               <span className="pontos-ranking">
                 <strong>{j.pontos}</strong>

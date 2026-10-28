@@ -16,6 +16,14 @@ export function calcularNivel(erros, tempoMs, rodadas) {
   return 1;
 }
 
+// Chave da arte da badge de uma fase ("badge-1".."badge-8"). Vem do NÚMERO no id
+// da fase ("fase-06" → "badge-6"), não da posição no mapa — assim a arte continua
+// certa mesmo se a ordem das fases mudar. Sem id válido, cai na posição.
+export function chaveBadgeFase(fase, posicao = 0) {
+  const n = parseInt(String(fase?.id || "").replace(/\D+/g, ""), 10);
+  return `badge-${Number.isFinite(n) && n > 0 ? n : posicao + 1}`;
+}
+
 // Nome/rótulo do nível (para leitura/aria; nada obrigatório na tela).
 export const NIVEL_NOME = { 1: "Bronze", 2: "Prata", 3: "Ouro", 4: "Holográfica" };
 

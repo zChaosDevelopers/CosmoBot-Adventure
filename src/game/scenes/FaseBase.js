@@ -5,8 +5,8 @@ import { lerAcessibilidade, px, ICONE_OPERACAO } from "../acessibilidade.js";
 import { falar, pararFala } from "../../lib/fala.js";
 import { anunciar } from "../../lib/anunciar.js";
 import { pling, somVitoria, somErro, somEstouro } from "../../lib/sfx.js";
-import { podeAgir } from "../teclado.js";
-import { calcularNivel, resumirBadges, NIVEL_NOME } from "../badges.js";
+import { iniciarConfirmacao, definirConfirmacaoBase, empilharConfirmacao } from "../teclado.js";
+import { calcularNivel, resumirBadges, chaveBadgeFase, NIVEL_NOME } from "../badges.js";
 import { chaveJogador, registrarJogador, atualizarPontuacao } from "../../lib/ranking.js";
 import { enviarPontuacaoGlobal } from "../../lib/rankingGlobal.js";
 import { mostrarPopupInstrucoes } from "../popupInstrucoes.js";
@@ -39,6 +39,7 @@ export default class FaseBase extends Phaser.Scene {
     // jogador GANHA 1 uso da dica. Usou → o botão fica cinza até o próximo estouro.
     this.dicasDisponiveis = 0;
     this.botaoDica = null;
+    this._dicaEventos = []; // pulsos/sons agendados pela dica em andamento (ver agendarDica)
 
     // Tutorial de primeira vez: na 1ª fase, se o jogador nunca jogou neste
     // aparelho, mostramos a dica (💡) desde o início e demonstramos a jogada.
@@ -70,6 +71,7 @@ export default class FaseBase extends Phaser.Scene {
     this.criarBotaoVoltar();
     this.criarBotaoPausa();
     this.criarBotaoAjuda();
+    iniciarConfirmacao(this); // Enter/Espaço: um único listener, com camadas (ver teclado.js)
     this.configurarTeclado();
   }
 
@@ -90,6 +92,7 @@ export default class FaseBase extends Phaser.Scene {
       jaVisto = true; // sem localStorage: não insiste toda vez
     }
     if (jaVisto) {
+      this._aoComecarFase = null; // já começou: reabrir a ajuda (❓) não pode recomeçar a fase
       aoComecar();
       return;
     }
@@ -109,7 +112,11 @@ export default class FaseBase extends Phaser.Scene {
       linhas: this.comoJogarLinhas(),
       aoFechar: () => {
         this._instrucoesAbertas = false;
-        this._aoComecarFase?.();
+        // Só a PRIMEIRA vez que o pop-up fecha é que começa a fase. Fechar a ajuda
+        // (❓) no meio do jogo não pode regenerar as contas nem recomeçar a rodada.
+        const comecar = this._aoComecarFase;
+        this._aoComecarFase = null;
+        comecar?.();
       },
     });
   }
@@ -182,6 +189,9 @@ export default class FaseBase extends Phaser.Scene {
     });
     this.overlayPausa.add(botao);
     botao.setFoco(true);
+    // Em pausa, Enter/Espaço só continuam o jogo (nada por baixo reage).
+    this._soltarEnterPausa?.();
+    this._soltarEnterPausa = empilharConfirmacao(this, () => this.retomar());
     anunciar("Jogo pausado.");
   }
 
@@ -193,6 +203,8 @@ export default class FaseBase extends Phaser.Scene {
     this.tweens.resumeAll();
     this.overlayPausa?.destroy(true);
     this.overlayPausa = null;
+    this._soltarEnterPausa?.();
+    this._soltarEnterPausa = null;
     anunciar("Jogo retomado.");
   }
 
@@ -261,11 +273,16 @@ export default class FaseBase extends Phaser.Scene {
   desenharCabecalho() {
     const centro = this.scale.width / 2;
 
+    // Toda rodada nova começa limpa: some qualquer efeito de dica que ainda estava
+    // agendado e os tweens "órfãos" (de objetos da rodada anterior, já destruídos).
+    this.cancelarDica();
+    this.limparTweensOrfaos();
+
     // Linha 1 (âmbar): etapa e módulo.
     const etapa = this.add
       .text(
         centro,
-        56,
+        66, // abaixo das estrelas ⭐ da tira de progresso (que descem até y≈53)
         `Etapa ${this.indiceFase + 1} de ${this.totalFases}  •  ${this.fase.modulo}`,
         { fontFamily: TEMA.fonte, fontSize: this.fs("18px"), color: "#ffd8a8" }
       )
@@ -275,7 +292,7 @@ export default class FaseBase extends Phaser.Scene {
     // Linha 2 (discreta): em qual desafio da etapa a criança está. No contraste
     // alto o cinza vira branco (fica legível no fundo preto).
     const rod = this.add
-      .text(centro, 80, `Desafio ${this.rodadaAtual + 1} de ${this.rodadas.length}`, {
+      .text(centro, 90, `Desafio ${this.rodadaAtual + 1} de ${this.rodadas.length}`, {
         fontFamily: TEMA.fonte,
         fontSize: this.fs("14px"),
         color: this.a11y.contraste ? "#ffffff" : "#94a3b8",
@@ -288,14 +305,16 @@ export default class FaseBase extends Phaser.Scene {
     // para medir a altura real e ancorar o conteúdo.
     const icone = ICONE_OPERACAO[this.fase.tipoPuzzle] || "";
     const enunciado = this.add
-      .text(centro, 108, `${icone}  ${this.fase.enunciado}`, {
+      .text(centro, 114, `${icone}  ${this.fase.enunciado}`, {
         fontFamily: TEMA.fonte,
         fontSize: this.fs("21px"),
         color: "#ffffff",
         align: "center",
         fontStyle: "bold",
         lineSpacing: 4,
-        wordWrap: { width: this.scale.width - 140 },
+        // Deixa livres as colunas de botões das bordas (esquerda: mapa; direita:
+        // pausa, ajuda e dica) para o texto nunca passar por baixo deles.
+        wordWrap: { width: Math.max(220, this.scale.width - 180) },
       })
       .setOrigin(0.5, 0);
     this.grupo.add(enunciado);
@@ -340,6 +359,7 @@ export default class FaseBase extends Phaser.Scene {
     g.fillRoundedRect(centro - largura / 2, y - altura / 2, largura, altura, 16);
     g.lineStyle(5, TEMA.foco, 1);
     g.strokeRoundedRect(centro - largura / 2, y - altura / 2, largura, altura, 16);
+    g.caixaAbs = { x0: centro - largura / 2, y0: y - altura / 2, x1: centro + largura / 2, y1: y + altura / 2 };
     this.grupo.add(g);
 
     this.operacaoTxt = this.add
@@ -419,19 +439,56 @@ export default class FaseBase extends Phaser.Scene {
   }
 
   // ===== Botões de resposta (mouse, toque e teclado) =====
+  // Medidas da fileira de respostas, calculadas pelo tamanho REAL da tela. As
+  // fases usam isto ANTES de criar os botões para saber onde o conteúdo deve
+  // terminar (`fundo`) — assim nada passa por baixo das respostas. Em telas
+  // estreitas os botões encolhem para nunca encostar um no outro.
+  medidasRespostas(total) {
+    const W = this.scale.width;
+    const H = this.scale.height;
+    const muitos = total >= 5;
+    const Lbase = muitos ? 108 : 130;
+    const Abase = muitos ? 96 : 110;
+    const passo = Math.min(muitos ? 150 : 165, (W - 24) / total);
+    const L = Math.min(Lbase, Math.floor(passo - 10));
+    const A = Math.min(Abase, Math.round(L * 0.95));
+    const escala = L / Lbase;
+    const y = H - A / 2 - 22;
+    return {
+      L,
+      A,
+      passo,
+      y,
+      fonte: Math.round((muitos ? 40 : 50) * Math.max(0.7, escala)),
+      topo: y - A / 2, // onde começam os botões
+      fundo: y - A / 2 - 16, // limite inferior livre para o conteúdo da fase
+    };
+  }
+
+  // Quanto de altura sobra para o conteúdo (entre o cabeçalho e as respostas —
+  // ou o rodapé, nas fases sem botões de resposta).
+  alturaLivre(totalOpcoes) {
+    const fundo = totalOpcoes ? this.medidasRespostas(totalOpcoes).fundo : this.scale.height - 44;
+    return Math.max(120, fundo - this.baseY);
+  }
+
+  // Fator de espaçamento (0.7–1.35): encolhe os intervalos quando falta altura e
+  // alarga quando sobra (telas altas), sem mexer no tamanho dos desenhos.
+  fatorEspaco(alturaNecessaria, totalOpcoes) {
+    const f = this.alturaLivre(totalOpcoes) / alturaNecessaria;
+    return Math.max(0.7, Math.min(1.35, f));
+  }
+
   criarBotoesResposta(centro, opcoes, aoResponder) {
     this.botoes = [];
     this.aoResponder = aoResponder;
     const total = opcoes.length;
-    // Com 5 alternativas os botões ficam um pouco menores para caber bem.
-    const muitos = total >= 5;
-    const L = muitos ? 108 : 130;
-    const A = muitos ? 96 : 110;
-    const tamFonte = this.fs(muitos ? "40px" : "50px");
-    const passo = Math.min(muitos ? 150 : 165, (this.scale.width - 40) / total);
+    const m = this.medidasRespostas(total);
+    const { L, A, passo } = m;
+    const tamFonte = this.fs(`${m.fonte}px`);
     opcoes.forEach((num, idx) => {
       const bx = centro + (idx - (total - 1) / 2) * passo;
-      const by = this.scale.height - 72;
+      const by = m.y;
       const cor = TEMA.coresBotao[idx % TEMA.coresBotao.length];
       const b = criarBotao(this, bx, by, `${num}`, () => this.escolher(num), { cor, largura: L, altura: A, fontSize: tamFonte });
       b.valor = num;
@@ -675,14 +732,14 @@ export default class FaseBase extends Phaser.Scene {
       cor: 0x2bff88,
     });
     botaoContinuar.setFoco(true);
-    this.input.keyboard.off("keydown-ENTER").once("keydown-ENTER", seguir);
+    empilharConfirmacao(this, seguir); // Enter/Espaço = "Continuar" (a camada some com a cena)
     this.time.delayedCall(3600, seguir);
   }
 
   // Mostra a insígnia conquistada na tela de conclusão, com brilho conforme o
   // nível (mais reluzente quanto mais rápido e sem erros). Usa a arte se existir.
   mostrarBadgeConquista(x, y, idx, nivel) {
-    const chave = `badge-${idx + 1}`;
+    const chave = chaveBadgeFase(this.fase, idx);
     const glow = this.add.circle(x, y, 62, TEMA.foco, 0.1 + nivel * 0.05);
     this.tweens.add({ targets: glow, scale: 1.5, alpha: 0.04, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
 
@@ -732,8 +789,9 @@ export default class FaseBase extends Phaser.Scene {
   configurarTeclado() {
     this.input.keyboard.off("keydown-RIGHT").on("keydown-RIGHT", () => this.moverFoco(1));
     this.input.keyboard.off("keydown-LEFT").on("keydown-LEFT", () => this.moverFoco(-1));
-    this.input.keyboard.off("keydown-ENTER").on("keydown-ENTER", (e) => this.ativarFoco(e));
-    this.input.keyboard.off("keydown-SPACE").on("keydown-SPACE", (e) => this.ativarFoco(e));
+    // Enter/Espaço: ação base da fase (responder a opção em foco). Fases de arraste
+    // trocam por outra ação em definirConfirmacaoBase().
+    definirConfirmacaoBase(this, () => this.ativarFoco());
     // Tecla H = Dica (acessível por teclado; só depois que a dica aparece).
     this.input.keyboard.off("keydown-H").on("keydown-H", () => {
       if (this.pausado) return;
@@ -743,16 +801,13 @@ export default class FaseBase extends Phaser.Scene {
     this.input.keyboard.off("keydown-P").on("keydown-P", () => this.alternarPausa());
   }
 
-  // Confirma a opção em foco. Passa por podeAgir(): ignora auto-repetição e o
-  // "spam" de Enter (inclusive o herdado da tela anterior), que fazia o jogo
-  // responder/pular fases sozinho.
-  ativarFoco(evento) {
-    if (this.bloqueado) return;
-    // Nada focado (ou fase sem botões de opção): Enter não responde — e, importante,
-    // sai ANTES de consumir o anti-spam. Senão, nas fases de arraste (que têm o
-    // próprio Enter) este handler comeria o podeAgir e o Enter não faria nada.
-    if (this.focoIndex < 0 || !this.botoes?.length) return;
-    if (!podeAgir(this, evento)) return;
+  // Confirma a opção em foco. O anti-spam (tecla segurada, Enter herdado, rajada)
+  // já foi feito em teclado.js. Devolve false quando não havia nada a fazer, para o
+  // Enter não gastar o intervalo anti-spam à toa.
+  ativarFoco() {
+    if (this.bloqueado || this.pausado) return false;
+    // Nada focado (ou fase sem botões de opção): Enter não responde sozinho.
+    if (this.focoIndex < 0 || !this.botoes?.length) return false;
     const alvo = this.botoes[this.focoIndex];
     if (alvo) {
       alvo.apertar?.();
@@ -831,6 +886,7 @@ export default class FaseBase extends Phaser.Scene {
   // Estoura as bolinhas com "pop" e estilhaços, depois chama aoFim.
   estourarBaloes(lista, aoFim) {
     this.bloqueado = true;
+    this.cancelarDica();
     somEstouro();
     if (this.dica) this.dica.setText("");
     const alvos = (lista || []).filter(Boolean);
@@ -889,10 +945,11 @@ export default class FaseBase extends Phaser.Scene {
   // ver resetarPergunta). Com 0 usos disponíveis o botão aparece CINZA e inerte.
   criarBotaoDica(aoClicar) {
     if (!this.mostrarDica) return null;
-    // Fica na LATERAL DIREITA, na meia-altura: longe dos botões de resposta
-    // (embaixo) e da tira da nave (topo), para não sobrepor nenhuma interação.
+    // Fica na COLUNA DA DIREITA, logo abaixo de pausa (⏸️) e ajuda (❓): é uma
+    // faixa que o conteúdo da fase nunca ocupa (começa abaixo do cabeçalho),
+    // então a lâmpada não cobre nada em nenhum tamanho de tela.
     const x = this.scale.width - 42;
-    const y = this.scale.height / 2 + 20;
+    const y = 124;
     // Brilho pulsante atrás, para a criança perceber que ali tem ajuda.
     const glow = this.add.circle(x, y, 32, 0x00c2ff, 0.4);
     this.grupo.add(glow);
@@ -926,7 +983,37 @@ export default class FaseBase extends Phaser.Scene {
     if (this.dicasDisponiveis <= 0 || this.pausado || this.bloqueado) return;
     this.dicasDisponiveis -= 1;
     if (this.dicasDisponiveis <= 0) this.desativarBotaoDica();
+    this.cancelarDica(); // nunca duas demonstrações ao mesmo tempo
     (acao || this.darDica)?.call(this);
+  }
+
+  // As dicas animam em sequência (pulsos, sons, mãozinha) com delayedCall. Se a
+  // conta trocasse no meio (3 erros, fim do tempo, acerto), esses passos atrasados
+  // continuavam rodando em cima da rodada NOVA — pulsando, tocando ou até movendo
+  // peças que não eram mais as da dica (era o "acúmulo" de efeitos). Por isso os
+  // passos da dica passam por aqui, e cancelarDica() derruba todos de uma vez.
+  agendarDica(ms, fn) {
+    const ev = this.time.delayedCall(ms, () => {
+      this._dicaEventos = (this._dicaEventos || []).filter((e) => e !== ev);
+      fn();
+    });
+    (this._dicaEventos ||= []).push(ev);
+    return ev;
+  }
+
+  cancelarDica() {
+    (this._dicaEventos || []).forEach((e) => e.remove(false));
+    this._dicaEventos = [];
+  }
+
+  // Remove tweens cujos alvos já foram destruídos (luzes, brilhos e botões da
+  // rodada anterior). Sem isso eles ficavam rodando para sempre, acumulando a cada
+  // conta nova e pesando o jogo.
+  limparTweensOrfaos() {
+    this.tweens.getTweens().forEach((tw) => {
+      const alvos = tw.targets || [];
+      if (alvos.length && alvos.every((a) => a && a.active === false && !a.scene)) tw.remove();
+    });
   }
 
   // O brilho some e o botão fica cinza/inerte.

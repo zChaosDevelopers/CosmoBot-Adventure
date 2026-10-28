@@ -2,6 +2,7 @@ import { TEMA } from "./tema.js";
 import { criarBotao } from "./desenho.js";
 import { falar } from "../lib/fala.js";
 import { anunciar } from "../lib/anunciar.js";
+import { empilharConfirmacao } from "./teclado.js";
 
 // Pop-up de instruções (item 9 do relatório de QA): mostrado ANTES de liberar
 // o desafio, explicando de forma curta como jogar. Compartilhado entre as
@@ -22,19 +23,14 @@ export function mostrarPopupInstrucoes(scene, opts = {}) {
   camada.add(fundo);
 
   const painelW = Math.min(560, width - 48);
-  const painelH = Math.min(380, height - 48);
   const cx = width / 2;
   const cy = height / 2;
 
-  const g = scene.add.graphics();
-  g.fillStyle(0x0b1120, 0.98);
-  g.fillRoundedRect(cx - painelW / 2, cy - painelH / 2, painelW, painelH, 22);
-  g.lineStyle(5, TEMA.foco, 1);
-  g.strokeRoundedRect(cx - painelW / 2, cy - painelH / 2, painelW, painelH, 22);
-  camada.add(g);
-
+  // Os textos são criados primeiro para MEDIR a altura real e só então desenhar o
+  // painel: ele cresce (ou o texto diminui) conforme a largura da tela, e o botão
+  // nunca fica por cima das frases.
   const titulo = scene.add
-    .text(cx, cy - painelH / 2 + 38, `${opts.icone || "🚀"}  ${opts.titulo || "Como jogar"}`, {
+    .text(cx, 0, `${opts.icone || "🚀"}  ${opts.titulo || "Como jogar"}`, {
       fontFamily: TEMA.fonte,
       fontSize: fs("24px"),
       color: "#ffd8a8",
@@ -43,10 +39,8 @@ export function mostrarPopupInstrucoes(scene, opts = {}) {
       wordWrap: { width: painelW - 60 },
     })
     .setOrigin(0.5);
-  camada.add(titulo);
-
   const corpo = scene.add
-    .text(cx, cy - 6, texto, {
+    .text(cx, 0, texto, {
       fontFamily: TEMA.fonte,
       fontSize: fs("19px"),
       color: "#ffffff",
@@ -55,31 +49,56 @@ export function mostrarPopupInstrucoes(scene, opts = {}) {
       wordWrap: { width: painelW - 70 },
     })
     .setOrigin(0.5);
+  const BOTAO_H = 56;
+  const altNecessaria = () => 24 + titulo.height + 18 + corpo.height + 24 + BOTAO_H + 26;
+  const maxH = height - 32;
+  // Texto grande demais para a tela: reduz a letra até caber.
+  let tam = 19;
+  while (altNecessaria() > maxH && tam > 13) {
+    tam -= 1;
+    corpo.setFontSize(`${tam}px`);
+    corpo.setLineSpacing(Math.max(2, tam - 11));
+  }
+  const painelH = Math.min(maxH, Math.max(280, altNecessaria()));
+  const topo = cy - painelH / 2;
+  titulo.setY(topo + 24 + titulo.height / 2);
+  corpo.setY(topo + 24 + titulo.height + 18 + corpo.height / 2);
+  const botaoY = topo + painelH - 26 - BOTAO_H / 2;
+
+  const g = scene.add.graphics();
+  g.fillStyle(0x0b1120, 0.98);
+  g.fillRoundedRect(cx - painelW / 2, topo, painelW, painelH, 22);
+  g.lineStyle(5, TEMA.foco, 1);
+  g.strokeRoundedRect(cx - painelW / 2, topo, painelW, painelH, 22);
+  camada.add(g);
+  camada.add(titulo); // o painel entra antes: os textos ficam por cima dele
   camada.add(corpo);
 
+  // Fecha UMA vez só (por tecla ou por mouse) e tira a camada de Enter da pilha.
+  // Sem isso, fechar com o mouse deixava um "Enter fantasma" pendurado que, no
+  // próximo Enter do jogo, chamava aoFechar() de novo e recomeçava a fase.
+  let fechado = false;
+  let soltarEnter = null;
   const fechar = () => {
+    if (fechado) return;
+    fechado = true;
+    soltarEnter?.();
     camada.destroy(true);
     opts.aoFechar?.();
   };
 
-  const botao = criarBotao(scene, cx, cy + painelH / 2 - 46, "Entendi, jogar ▶", fechar, {
-    largura: 270,
-    altura: 56,
+  const botao = criarBotao(scene, cx, botaoY, "Entendi, jogar ▶", fechar, {
+    largura: Math.min(270, painelW - 40),
+    altura: BOTAO_H,
     fontSize: fs("21px"),
     cor: opts.corBotao ?? 0x2bff88,
   });
   camada.add(botao);
   botao.setFoco(true);
 
-  // Enter/Espaço também fecham (sem exigir mira no botão).
-  const teclaFechar = (e) => {
-    e?.stopPropagation?.();
-    fechar();
-  };
-  scene.input.keyboard.off("keydown-ENTER", teclaFechar);
-  scene.input.keyboard.off("keydown-SPACE", teclaFechar);
-  scene.input.keyboard.once("keydown-ENTER", teclaFechar);
-  scene.input.keyboard.once("keydown-SPACE", teclaFechar);
+  // Enter/Espaço também fecham (sem exigir mira no botão). Enquanto o pop-up está
+  // aberto, só ele recebe o Enter: nada por baixo reage junto.
+  soltarEnter = empilharConfirmacao(scene, fechar);
 
   falar(texto);
   anunciar(`${opts.titulo || "Instruções"}. ${texto}`);

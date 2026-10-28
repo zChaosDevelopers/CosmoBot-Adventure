@@ -41,8 +41,9 @@ export function criarConfig(parent, dados) {
   return {
     type: Phaser.AUTO,
     parent,
-    width: 800,
-    height: 600,
+    // Tamanho lógico escolhido pelo formato da janela (ver game/tamanho.js).
+    width: dados.tamanho?.width || 800,
+    height: dados.tamanho?.height || 600,
     backgroundColor: "#0b1120",
     // Desempenho: prioriza a GPU dedicada, arredonda pixels (desenho mais nítido
     // e barato) e limita a taxa de quadros para não sobrecarregar o aparelho.

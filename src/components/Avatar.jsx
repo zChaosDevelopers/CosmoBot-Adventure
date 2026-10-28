@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useJogador } from "../context/JogadorContext.jsx";
 import { TEMA } from "../game/tema.js";
 import { nomeDisponivel, registrarJogador } from "../lib/ranking.js";
+import { validarNome } from "../lib/filtroNomes.js";
 import RoboSVG from "./RoboSVG.jsx";
 
 // Tela para escolher a COR do robô e digitar um apelido de brincadeira.
@@ -9,9 +10,15 @@ export default function Avatar({ irPara }) {
   const { apelido, setApelido, avatar, setAvatar } = useJogador();
   const [nome, setNome] = useState(apelido);
   const [erro, setErro] = useState("");
+  const botaoComecar = useRef(null);
 
   function comecar() {
     const limpo = nome.trim() || "Explorador";
+    const nomeOk = validarNome(limpo);
+    if (!nomeOk.ok) {
+      setErro(nomeOk.motivo);
+      return;
+    }
     // Regra de nome único: bloqueia se JÁ existe alguém com o mesmo nome E o
     // mesmo robô. Basta trocar a COR do robô (ou o nome) para liberar.
     if (!nomeDisponivel(limpo, avatar)) {
@@ -81,11 +88,11 @@ export default function Avatar({ irPara }) {
             setErro("");
           }}
           onKeyDown={(e) => {
-            // Enter no apelido já começa o jogo (acessibilidade por teclado —
-            // antes não dava para chegar no botão "Começar" pelo teclado).
+            // 1º Enter no apelido só move o foco para "Começar"; o 2º Enter (agora
+            // com o foco no botão) inicia o jogo.
             if (e.key === "Enter") {
               e.preventDefault();
-              comecar();
+              botaoComecar.current?.focus();
             }
           }}
           placeholder="Ex.: Estrelinha"
@@ -102,7 +109,7 @@ export default function Avatar({ irPara }) {
         <button className="botao" onClick={() => irPara("menu")}>
           Voltar
         </button>
-        <button className="botao botao-primario" onClick={comecar}>
+        <button ref={botaoComecar} className="botao botao-primario" onClick={comecar}>
           Começar
         </button>
       </div>

@@ -16,12 +16,14 @@ export default class DesafioScene extends FaseBase {
 
   create() {
     this.iniciarFase();
+    this.bossLayer = null; // o Phaser reaproveita a cena: recria o guardião a cada entrada
     this.mostrarInstrucoes(() => {
       const cfg = this.fase.gerar || {};
       this.rodadas = gerarRodadasDesafio(cfg.rodadas ?? 6);
       this.vidaMax = this.rodadas.length;
       this.vida = this.vidaMax;
-      this.desenharGuardiao();
+      // O guardião é desenhado dentro de montarRodada(), depois do cabeçalho:
+      // assim ele se posiciona pela altura REAL do título (nunca em cima dele).
       this.montarRodada();
       falar("Desafio final! Resolva as contas para vencer o guardião.");
     });
@@ -31,7 +33,8 @@ export default class DesafioScene extends FaseBase {
   desenharGuardiao() {
     const { width } = this.scale;
     const bx = width / 2;
-    const by = 168;
+    // Abaixo do cabeçalho: 38 (raio) + 12 (balanço do pulinho) + folga.
+    const by = this.baseY + 56;
     this.bossLayer = this.add.container(0, 0);
     this.boss = this.add.container(bx, by);
 
@@ -53,15 +56,19 @@ export default class DesafioScene extends FaseBase {
 
     // Barra de vida do guardião (item 5: maior, com mais contraste e um número
     // ao lado — fácil de acompanhar o progresso da batalha à distância).
-    const w = 260;
+    const w = Math.min(260, this.scale.width - 220);
     const h = 20;
-    const y = by + 66;
+    // Rótulo logo abaixo do corpo do guardião e a barra de vida embaixo dele,
+    // sem nada em cima do rosto (antes o texto ficava sobre o boneco).
+    const rotuloY = by + 38 + 16;
+    const y = rotuloY + 26;
+    this.baseDepoisBoss = y + h / 2; // onde o resto do conteúdo pode começar
     const trilho = this.add.rectangle(bx, y, w, h, 0x1e293b, 0.95);
     trilho.setStrokeStyle(3, 0x475569, 1);
     this.bossLayer.add(trilho);
     this.hpBarra = this.add.rectangle(bx - w / 2, y, w, h, 0xff3b5c, 1).setOrigin(0, 0.5);
     this.bossLayer.add(this.hpBarra);
-    const cor = this.add.text(bx, y - 34, "👾 Guardião", { fontFamily: TEMA.fonte, fontSize: this.fs("16px"), color: "#e2e8f0", fontStyle: "bold" }).setOrigin(0.5);
+    const cor = this.add.text(bx, rotuloY, "👾 Guardião", { fontFamily: TEMA.fonte, fontSize: this.fs("16px"), color: "#e2e8f0", fontStyle: "bold" }).setOrigin(0.5);
     this.bossLayer.add(cor);
     // Vida em número (ex.: "6/6"), sempre visível por cima da barra.
     this.hpTxt = this.add
@@ -80,21 +87,24 @@ export default class DesafioScene extends FaseBase {
     const centro = this.desenharCabecalho();
     const q = this.rodadas[this.rodadaAtual];
     this.q = q;
+    if (!this.bossLayer) this.desenharGuardiao();
 
-    // ===== Conta DESTACADA (box grande, no centro e um pouco mais pra cima) =====
+    // ===== Conta DESTACADA (box grande, abaixo do guardião e acima das respostas) =====
     const bw = Math.min(520, this.scale.width - 50);
-    const bh = 118;
-    const ey = 296;
+    const livreBox = this.medidasRespostas(q.opcoes.length).fundo - this.baseDepoisBoss - 22;
+    const bh = Math.max(84, Math.min(118, livreBox));
+    const ey = this.baseDepoisBoss + 14 + bh / 2 + Math.max(0, livreBox - bh) * 0.4;
     const g = this.add.graphics();
     g.fillStyle(0x0b1120, 0.92);
     g.fillRoundedRect(centro - bw / 2, ey - bh / 2, bw, bh, 20);
     g.lineStyle(6, TEMA.foco, 1);
     g.strokeRoundedRect(centro - bw / 2, ey - bh / 2, bw, bh, 20);
+    g.caixaAbs = { x0: centro - bw / 2, y0: ey - bh / 2, x1: centro + bw / 2, y1: ey + bh / 2 };
     this.grupo.add(g);
 
     this.eqBox = this.add.container(centro, ey);
     this.eqTxt = this.add
-      .text(0, 0, `${q.icone}  ${q.prompt} = ?`, {
+      .text(0, 0, `${q.prompt} = ?`, {
         fontFamily: TEMA.fonte,
         fontSize: this.fs("46px"),
         color: "#ffffff",
@@ -117,7 +127,7 @@ export default class DesafioScene extends FaseBase {
     this.bloqueado = true;
     this.botoes.forEach((b) => b.disableInteractive());
     somAcerto();
-    this.eqTxt.setText(`${this.q.icone}  ${this.q.prompt} = ${this.q.quantidade}`).setColor("#2bff88");
+    this.eqTxt.setText(`${this.q.prompt} = ${this.q.quantidade}`).setColor("#2bff88");
     this.tweens.add({ targets: this.eqBox, scale: 1.15, duration: 260, yoyo: true, ease: "Back.easeOut" });
     this.acertarBoss();
     falar(`Isso! ${this.q.prompt} é ${this.q.quantidade}.`);
@@ -145,7 +155,7 @@ export default class DesafioScene extends FaseBase {
       certo.setFoco(true);
       this.tweens.add({ targets: certo, scale: 1.15, duration: 260, yoyo: true, repeat: 1 });
     }
-    this.eqTxt.setText(`${this.q.icone}  ${this.q.prompt} = ${this.q.quantidade}`).setColor("#ffd43b");
+    this.eqTxt.setText(`${this.q.prompt} = ${this.q.quantidade}`).setColor("#ffd43b");
     this.acertarBoss();
     falar(`A resposta era ${this.q.quantidade}. Vamos para a próxima!`);
     this.time.delayedCall(1300, () => this.aposAcerto());

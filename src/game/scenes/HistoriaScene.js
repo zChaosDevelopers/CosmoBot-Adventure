@@ -3,7 +3,7 @@ import { TEMA } from "../tema.js";
 import { desenharFundo, criarBotao, criarPersonagem } from "../desenho.js";
 import { falar } from "../../lib/fala.js";
 import { pling } from "../../lib/sfx.js";
-import { podeAgir } from "../teclado.js";
+import { iniciarConfirmacao, definirConfirmacaoBase } from "../teclado.js";
 
 // Abertura da aventura: conta a historinha do CosmoBot antes do primeiro
 // planeta. Mostrada uma vez, quando o jogo começa (BootScene → HistoriaScene).
@@ -48,24 +48,29 @@ export default class HistoriaScene extends Phaser.Scene {
 
     // Painel da história (posicionado ABAIXO do título, com o texto centrado
     // dentro dele — antes o bloco de texto subia e encostava no título).
+    // O painel se adapta à largura da tela e cresce se o texto quebrar em mais
+    // linhas (telas estreitas), sempre acima do botão de começar.
+    const painelLargura = Math.min(640, width - 24);
     const painelTopo = 272;
-    const painelAltura = 210;
-    const painel = this.add.graphics();
-    painel.fillStyle(0x0b1120, 0.55);
-    painel.lineStyle(2, TEMA.foco, 0.4);
-    painel.fillRoundedRect(width / 2 - 320, painelTopo, 640, painelAltura, 18);
-    painel.strokeRoundedRect(width / 2 - 320, painelTopo, 640, painelAltura, 18);
-
     const texto = this.add
-      .text(width / 2, painelTopo + painelAltura / 2, HISTORIA.join("\n\n"), {
+      .text(width / 2, painelTopo + 105, HISTORIA.join("\n\n"), {
         fontFamily: TEMA.fonte,
         fontSize: "19px",
         color: "#ffffff",
         align: "center",
         lineSpacing: 4,
-        wordWrap: { width: 588 },
+        wordWrap: { width: painelLargura - 52 },
       })
       .setOrigin(0.5);
+    const limiteBotao = height - 66 - 33 - 12; // topo do botão "Começar aventura" − folga
+    const painelAltura = Math.min(Math.max(210, texto.height + 36), limiteBotao - painelTopo);
+    texto.setY(painelTopo + painelAltura / 2);
+    const painel = this.add.graphics();
+    painel.fillStyle(0x0b1120, 0.55);
+    painel.lineStyle(2, TEMA.foco, 0.4);
+    painel.fillRoundedRect(width / 2 - painelLargura / 2, painelTopo, painelLargura, painelAltura, 18);
+    painel.strokeRoundedRect(width / 2 - painelLargura / 2, painelTopo, painelLargura, painelAltura, 18);
+    painel.setDepth(-1); // por baixo do texto (o painel agora é criado depois dele)
     texto.setAlpha(0);
     this.tweens.add({ targets: texto, alpha: 1, duration: 700 });
 
@@ -80,11 +85,8 @@ export default class HistoriaScene extends Phaser.Scene {
     );
     botao.setFoco(true);
 
-    const irComecar = (e) => {
-      if (podeAgir(this, e)) this.comecar();
-    };
-    this.input.keyboard.off("keydown-ENTER").on("keydown-ENTER", irComecar);
-    this.input.keyboard.off("keydown-SPACE").on("keydown-SPACE", irComecar);
+    iniciarConfirmacao(this);
+    definirConfirmacaoBase(this, () => this.comecar());
 
     pling(0);
     falar(`Olá, ${apelido}! ${HISTORIA.join(" ")}`);

@@ -3,7 +3,7 @@ import { TEMA } from "../tema.js";
 import { desenharFundo, criarBotao, criarPersonagem, desenharTiraNave } from "../desenho.js";
 import { falar } from "../../lib/fala.js";
 import { somVitoria, pling } from "../../lib/sfx.js";
-import { podeAgir } from "../teclado.js";
+import { iniciarConfirmacao, definirConfirmacaoBase } from "../teclado.js";
 import { resumirBadges } from "../badges.js";
 
 // Celebração final: quando todas as fases foram concluídas, a nave do CosmoBot
@@ -88,11 +88,24 @@ export default class EstacaoScene extends Phaser.Scene {
     // A nave decola: o foguete (grande) sobe de baixo e depois voa em movimento
     // contínuo — flutua subindo/descendo, balança e inclina — soltando um rastro
     // de estrelas laranja (o "fogo"). Sem a arte, cai no desenho procedural.
+    // ORÇAMENTO VERTICAL (nada se sobrepõe, em qualquer altura): tira da nave no
+    // topo → [badge suprema + rótulo, se houver] → foguete (com a folga do
+    // balanço) → textos → botão. Com a badge, o foguete encolhe para tudo caber.
+    const badges0 = this.registry.get("badges") || {};
+    const suprema = resumirBadges(badges0, totalEtapas).perfeito && this.textures.exists("badge-suprema");
+    const topo = 80; // logo abaixo da tira da nave (que termina em ~y72)
+    const tamBadge = suprema ? Math.max(96, Math.min(150, height * 0.18)) : 0;
+    const folgaBalanco = 32; // o foguete sobe até 32px ao flutuar
+    this.layoutFinal = { topo, tamBadge };
+    const blocoTopo = suprema ? topo + tamBadge + 36 : topo + 40; // abaixo do rótulo da badge
+    const tamNave = suprema
+      ? Math.max(100, Math.min(150, height * 0.22))
+      : Math.max(150, Math.min(260, height * 0.36));
     const restX = width / 2;
-    const restY = height / 2 - 60;
+    const restY = suprema ? blocoTopo + folgaBalanco + tamNave / 2 : Math.max(blocoTopo + folgaBalanco + tamNave / 2, height / 2 - 60);
     let nave;
     if (temFoguete) {
-      nave = this.add.image(restX, restY, "foguete").setDisplaySize(210, 210);
+      nave = this.add.image(restX, restY, "foguete").setDisplaySize(tamNave, tamNave);
       // Entra "decolando" de baixo-esquerda até o ponto de flutuação.
       nave.setPosition(restX - 120, restY + 190);
       this.tweens.add({
@@ -108,7 +121,7 @@ export default class EstacaoScene extends Phaser.Scene {
         },
       });
     } else {
-      nave = criarPersonagem(this, restX, restY, avatar, 128);
+      nave = criarPersonagem(this, restX, restY, avatar, Math.min(128, tamNave));
       this.tweens.add({ targets: nave, y: nave.y - 24, duration: 1500, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     }
 
@@ -118,8 +131,8 @@ export default class EstacaoScene extends Phaser.Scene {
     // Rastro de propulsão: estrelas laranja saindo da traseira (o foguete aponta
     // para cima-direita, então o fogo sai por baixo-esquerda).
     const emitirFogo = () => {
-      const bx = nave.x - 56 + Phaser.Math.Between(-10, 10);
-      const by = nave.y + 62;
+      const bx = nave.x - tamNave * 0.27 + Phaser.Math.Between(-10, 10);
+      const by = nave.y + tamNave * 0.3;
       if (temEstrela) {
         const faisca = this.add
           .image(bx, by, "estrela-cs")
@@ -149,15 +162,18 @@ export default class EstacaoScene extends Phaser.Scene {
     // (todas as fases com brilho máximo). Entra no topo, com brilho e faíscas.
     const badges = this.registry.get("badges") || {};
     const resumo = resumirBadges(badges, totalEtapas);
-    if (resumo.perfeito && this.textures.exists("badge-suprema")) {
+    if (suprema && resumo.perfeito) {
       this.time.delayedCall(900, () => this.revelarSuprema(width, apelido));
     }
 
+    const tituloY = restY + tamNave / 2 + 34;
     this.add
-      .text(width / 2, height / 2 + 62, "A nave decolou! 🚀", {
+      .text(width / 2, tituloY, "A nave decolou! 🚀", {
         fontFamily: TEMA.fonte,
-        fontSize: "40px",
+        fontSize: suprema ? "34px" : "40px",
         color: "#ffffff",
+        align: "center",
+        wordWrap: { width: width - 40 },
       })
       .setOrigin(0.5);
 
@@ -165,7 +181,7 @@ export default class EstacaoScene extends Phaser.Scene {
     const totalEstrelas = this.registry.get("estrelas") || 0;
     const maxEstrelas = totalEtapas * 3;
     const estrelasTxt = this.add
-      .text(width / 2, height / 2 + 108, `⭐ ${totalEstrelas} / ${maxEstrelas}`, {
+      .text(width / 2, tituloY + 44, `⭐ ${totalEstrelas} / ${maxEstrelas}`, {
         fontFamily: TEMA.fonte,
         fontSize: "30px",
         color: "#ffe000",
@@ -176,7 +192,7 @@ export default class EstacaoScene extends Phaser.Scene {
     this.tweens.add({ targets: estrelasTxt, scale: 1, duration: 500, delay: 300, ease: "Back.easeOut" });
 
     this.add
-      .text(width / 2, height / 2 + 146, `Muito bem, ${apelido}!`, {
+      .text(width / 2, tituloY + 82, `Muito bem, ${apelido}!`, {
         fontFamily: TEMA.fonte,
         fontSize: "19px",
         color: "#ffd43b",
@@ -191,37 +207,37 @@ export default class EstacaoScene extends Phaser.Scene {
       this.registry.set("estrelasPorEtapa", {});
       this.scene.start("SelecaoFasesScene"); // volta ao mapa para escolher fases
     };
-    const botao = criarBotao(this, width / 2, height - 60, "Jogar de novo ↻", jogarDeNovo, {
+    const botao = criarBotao(this, width / 2, Math.max(height - 50, tituloY + 82 + 52), "Jogar de novo ↻", jogarDeNovo, {
       largura: 280,
       altura: 60,
       fontSize: "23px",
     });
     botao.setFoco(true);
-    this.input.keyboard.off("keydown-ENTER").on("keydown-ENTER", (e) => {
-      if (podeAgir(this, e)) jogarDeNovo();
-    });
+    iniciarConfirmacao(this);
+    definirConfirmacaoBase(this, jogarDeNovo);
 
     falar(`Parabéns, ${apelido}! A nave do CosmoBot está pronta e decolou rumo ao planeta. Muito bem!`);
   }
 
   // ===== Reveal da BADGE SUPREMA (histórico perfeito) =====
   revelarSuprema(width, apelido) {
-    const y = 128;
+    const { topo, tamBadge } = this.layoutFinal;
+    const y = topo + tamBadge / 2;
     this.cameras.main.flash(300, 255, 240, 180);
 
     // Halo pulsante atrás da badge.
-    const halo = this.add.circle(width / 2, y, 96, 0xffe066, 0.14).setDepth(9);
+    const halo = this.add.circle(width / 2, y, tamBadge * 0.6, 0xffe066, 0.14).setDepth(9);
     this.tweens.add({ targets: halo, scale: 1.35, alpha: 0.04, duration: 1200, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
 
     // A badge entra crescendo.
     const sup = this.add.image(width / 2, y, "badge-suprema").setDepth(10).setScale(0);
-    const alvo = sup.width ? 160 / sup.width : 0.32;
+    const alvo = sup.width ? tamBadge / sup.width : 0.32;
     this.tweens.add({ targets: sup, scale: alvo, duration: 600, ease: "Back.easeOut" });
     this.tweens.add({ targets: sup, angle: 3, duration: 2200, yoyo: true, repeat: -1, ease: "Sine.easeInOut", delay: 600 });
 
     // Rótulo.
     const lbl = this.add
-      .text(width / 2, y + 66, "BADGE SUPREMA!", { fontFamily: TEMA.fonte, fontSize: "20px", color: "#ffe066", fontStyle: "bold" })
+      .text(width / 2, y + tamBadge / 2 + 16, "BADGE SUPREMA!", { fontFamily: TEMA.fonte, fontSize: "20px", color: "#ffe066", fontStyle: "bold" })
       .setOrigin(0.5)
       .setDepth(10)
       .setScale(0);
@@ -231,7 +247,7 @@ export default class EstacaoScene extends Phaser.Scene {
     for (let k = 0; k < 8; k++) {
       const ang = (k / 8) * Math.PI * 2;
       const s = this.add
-        .text(width / 2 + Math.cos(ang) * 100, y + Math.sin(ang) * 70, "✨", { fontFamily: TEMA.fonte, fontSize: "20px" })
+        .text(width / 2 + Math.cos(ang) * (tamBadge * 0.62), y + Math.sin(ang) * (tamBadge * 0.46), "✨", { fontFamily: TEMA.fonte, fontSize: "20px" })
         .setOrigin(0.5)
         .setDepth(10)
         .setScale(0);

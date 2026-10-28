@@ -8,6 +8,9 @@ import { fase07 } from "./fase07.js";
 import { fase08 } from "./fase08.js";
 
 // Os 8 planetas da aventura do CosmoBot, na ordem de dificuldade crescente:
-// Contagem → Soma → Subtração → Multiplicação → Divisão → Comparação →
-// Sequência → Desafio Final. Para criar novas fases, basta importar e adicionar.
-export const fases = [fase01, fase02, fase03, fase04, fase05, fase06, fase07, fase08];
+// Contagem → Comparação → Soma → Subtração → Multiplicação → Divisão →
+// Sequência → Desafio Final. (Comparação é conteúdo do 1º/2º ano e foi
+// antecipada: jogadores acharam difícil demais no meio da aventura.)
+// A ORDEM é só a posição neste array — cada fase mantém seu `id` (o que vai para o
+// progresso salvo) e sua arte de badge. Para criar novas fases, importe e adicione.
+export const fases = [fase01, fase06, fase02, fase03, fase04, fase05, fase07, fase08];

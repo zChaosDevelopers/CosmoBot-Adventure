@@ -40,11 +40,15 @@ export default class SequenciaScene extends FaseBase {
 
     const valores = [...rodada.termos, "?"];
     const n = valores.length;
-    const boxW = 92;
-    const gap = 22;
+    // Caixas e intervalo encolhem em telas estreitas (nunca passam das bordas) e
+    // a fileira fica centralizada no espaço livre acima das respostas.
+    const larguraMax = this.scale.width - 80;
+    const boxW = Math.min(92, Math.floor((larguraMax - (n - 1) * 14) / n));
+    const gap = Math.min(22, Math.max(12, (larguraMax - n * boxW) / Math.max(1, n - 1)));
     const totalW = n * boxW + (n - 1) * gap;
     const startX = centro - totalW / 2 + boxW / 2;
-    const cy = this.baseY + 96;
+    const livre = this.alturaLivre(rodada.opcoes.length);
+    const cy = this.baseY + Math.max(boxW / 2 + 36, livre * 0.42);
 
     this.caixas = [];
     this.setas = [];
@@ -153,7 +157,7 @@ export default class SequenciaScene extends FaseBase {
     if (this.bloqueado || this.pausado) return;
     falar("Veja quanto aumenta de uma para outra!");
     this.setas.forEach((s, i) => {
-      this.time.delayedCall(i * 300, () => {
+      this.agendarDica(i * 300, () => {
         pling(i);
         s.setAlpha(1);
         this.pulsar(s, 1.3, 200);

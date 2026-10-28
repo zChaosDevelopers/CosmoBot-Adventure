@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { validarNome } from "../lib/filtroNomes.js";
 import RoboSVG from "./RoboSVG.jsx";
 
 // Tela de preparação do MODO 2 JOGADORES.
@@ -23,15 +24,24 @@ export default function DoisJogadores({ irPara, aoComecar }) {
   const [cor2, setCor2] = useState("#ff922b");
   const [operacao, setOperacao] = useState("misto");
 
-  const comecar = () =>
+  const [erro, setErro] = useState("");
+
+  const comecar = () => {
+    // Bloqueia nomes impróprios (mesmo filtro do apelido do modo aventura).
+    if (!validarNome(nome1).ok || !validarNome(nome2).ok) {
+      setErro("Algum nome não pode ser usado. Escolha outros nomes bem legais! 🌟");
+      return;
+    }
+    setErro("");
     aoComecar({
       nome1: nome1.trim() || "Jogador 1",
       nome2: nome2.trim() || "Jogador 2",
       cor1,
       cor2,
       operacao,
-      rodadas: 5,
+      pontos: 5, // sem limite de rodadas: vence quem fizer 5 pontos primeiro
     });
+  };
 
   const cartao = (n, nome, setNome, cor, setCor, teclas) => (
     <div className="cartao-jogador">
@@ -44,7 +54,10 @@ export default function DoisJogadores({ irPara, aoComecar }) {
         className="campo-versus"
         value={nome}
         maxLength={14}
-        onChange={(e) => setNome(e.target.value)}
+        onChange={(e) => {
+          setNome(e.target.value);
+          setErro("");
+        }}
       />
       <div className="cores-jogador" role="group" aria-label={`Cor do jogador ${n}`}>
         {CORES.map((c) => (
@@ -96,6 +109,12 @@ export default function DoisJogadores({ irPara, aoComecar }) {
           ))}
         </div>
       </fieldset>
+
+      {erro && (
+        <p className="aviso-nome" role="alert">
+          {erro}
+        </p>
+      )}
 
       <div className="botoes-menu">
         <button className="botao botao-primario" onClick={comecar}>

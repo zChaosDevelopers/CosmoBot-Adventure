@@ -24,7 +24,9 @@ function corParaNumero(cor) {
 // Fundo: usa a imagem "fundo" se existir; senão, desenha um espaço COLORIDO
 // (gradiente, nebulosas rosa/ciano/roxo e estrelas). Planetas do Kenney entram
 // como enfeite se disponíveis.
-export function desenharFundo(scene) {
+// opts.planeta = false: telas cheias de elementos (ex.: placar do 2 jogadores) não
+// têm onde o planeta de enfeite fique sem encostar em algo.
+export function desenharFundo(scene, opts = {}) {
   const { width, height } = scene.scale;
 
   // Contraste alto: fundo PRETO sólido (sem nebulosa nem estrelas) para os
@@ -68,8 +70,10 @@ export function desenharFundo(scene) {
   }
   scene.tweens.add({ targets: ceu, alpha: 0.55, duration: 1800, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
 
-  if (scene.textures.exists("planeta")) {
-    const p = scene.add.image(width - 90, 100, "planeta").setScale(1.1).setAlpha(0.9);
+  if (opts.planeta !== false && scene.textures.exists("planeta")) {
+    // Abaixo da coluna de botões da direita (pausa, ajuda e dica vão até y≈155): o
+    // planeta é só enfeite, fica discreto e nunca atrás de um botão.
+    const p = scene.add.image(width - 70, 250, "planeta").setScale(0.7).setAlpha(0.5);
     scene.tweens.add({ targets: p, y: p.y + 12, duration: 3500, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
   }
   if (scene.textures.exists("lua")) {
@@ -206,6 +210,8 @@ export function criarBotao(scene, x, y, rotulo, aoClicar, opts = {}) {
   const corClara = ajustar(cor, 1.3);
 
   const c = scene.add.container(x, y);
+  // Retângulo ocupado pelo botão (usado também pelo teste automático de sobreposição).
+  c.caixa = { w: L, h: A };
   const visual = scene.add.container(0, 0);
   const g = scene.add.graphics();
 
@@ -326,7 +332,9 @@ export function desenharTiraNave(scene, etapas, idx, opts = {}) {
   const larguraTela = scene.scale.width;
   const y = opts.y ?? 22;
   const total = etapas.length;
-  const espaco = Math.min(opts.espaco || 108, (larguraTela - 120) / total);
+  // A tira respeita as colunas de botões das bordas (relógio/mapa à esquerda,
+  // pausa/ajuda à direita): nunca encosta neles, qualquer que seja a largura.
+  const espaco = Math.min(opts.espaco || 108, (larguraTela - 200) / Math.max(1, total - 1));
   const inicio = larguraTela / 2 - ((total - 1) * espaco) / 2;
   const cont = scene.add.container(0, 0);
   cont.alvoAtual = { x: inicio + Math.min(idx, total - 1) * espaco, y };
@@ -389,6 +397,8 @@ export function desenharCaixa(scene, x, y, w, h, cor, rotulo) {
   g.strokeRoundedRect(x - w / 2, y - h / 2, w, h, 12);
   const c = scene.add.container(0, 0);
   c.add(g);
+  // Retângulo da caixa em coordenadas absolutas (teste automático de sobreposição).
+  c.caixaAbs = { x0: x - w / 2, y0: y - h / 2, x1: x + w / 2, y1: y + h / 2 };
   if (rotulo) {
     const t = scene.add
       .text(x, y - h / 2 - 14, rotulo, { fontFamily: TEMA.fonte, fontSize: "16px", color: "#e2e8f0" })

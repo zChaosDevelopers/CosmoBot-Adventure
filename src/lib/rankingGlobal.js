@@ -9,6 +9,7 @@
 // A tabela é criada com supabase/tabela-ranking.sql.
 
 import { supabase } from "./supabase.js";
+import { nomeSeguro } from "./filtroNomes.js";
 
 const TABELA = "ranking";
 const COLUNAS = "chave,nome,icone,pontos,estrelas,badges,perfeito,quando";
@@ -73,7 +74,7 @@ export async function enviarPontuacaoGlobal({
     const { error } = await supabase.from(TABELA).upsert(
       {
         chave,
-        nome: String(nome || "").trim() || "Explorador",
+        nome: nomeSeguro(String(nome || "").trim()) || "Explorador",
         icone: String(icone || ""),
         pontos,
         estrelas,

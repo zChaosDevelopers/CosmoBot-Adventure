@@ -3,7 +3,7 @@ import { desenharCaixa } from "../desenho.js";
 import { gerarRodadasSoma } from "../gerarRodadas.js";
 import { falar } from "../../lib/fala.js";
 import { somAcerto, pling } from "../../lib/sfx.js";
-import { podeAgir } from "../teclado.js";
+import { definirConfirmacaoBase } from "../teclado.js";
 import FaseBase from "./FaseBase.js";
 
 // Etapa 2 — "Abrir a Comporta": SOMA como JUNTAR (reunir dois grupos).
@@ -49,9 +49,14 @@ export default class SomaScene extends FaseBase {
     // ===== Duas caixas de peças (grupos a juntar) =====
     // Ancoradas em baseY: nunca ficam "coladas" no enunciado. As próprias
     // caixas (Caixa A / Caixa B) já dizem o que fazer — sem frase repetida.
-    const boxAx = centro - 175;
-    const boxBx = centro + 175;
-    const boxY = this.baseY + 78;
+    // Os intervalos verticais acompanham o espaço livre da tela (f entre 0.7 e
+    // 1.35): em telas baixas ficam mais juntos, nas altas mais soltos — nunca
+    // sobrepõem o rodapé nem o cabeçalho.
+    const f = this.fatorEspaco(335, 0);
+    const desloc = Math.min(175, (this.scale.width - 190) / 2); // caixas lado a lado, sem sair da tela
+    const boxAx = centro - desloc;
+    const boxBx = centro + desloc;
+    const boxY = this.baseY + 70 + 8 * f;
     this.grupo.add(desenharCaixa(this, boxAx, boxY, 150, 96, "#22d3ee", `Caixa A: ${rodada.a}`));
     this.grupo.add(desenharCaixa(this, boxBx, boxY, 150, 96, "#51cf66", `Caixa B: ${rodada.b}`));
 
@@ -67,7 +72,7 @@ export default class SomaScene extends FaseBase {
     // ===== Núcleo (zona única onde as peças se juntam) =====
     const nucW = 220;
     const nucH = 118;
-    const nucY = boxY + 156;
+    const nucY = boxY + 121 + 35 * f;
     this.grupo.add(desenharCaixa(this, centro, nucY, nucW, nucH, "#ffd43b", "⚡ Núcleo de energia"));
     this.nucleo = { x: centro, y: nucY, w: nucW, h: nucH, itens: [] };
 
@@ -235,12 +240,11 @@ export default class SomaScene extends FaseBase {
   }
 
   // ===== Teclado: Enter junta a próxima; Backspace devolve a última =====
-  // podeAgir() ignora tecla SEGURADA (auto-repeat) e limita a frequência — assim
+  // O anti-spam (tecla segurada, rajada de Enter) é feito em teclado.js — assim
   // não dá para "mashar" Enter e juntar tudo (passar a fase) sem pensar.
   // off() antes de on() evita acumular listeners ao reabrir a fase (item 4).
   configurarTecladoNucleo() {
-    this.input.keyboard.off("keydown-ENTER").on("keydown-ENTER", (e) => podeAgir(this, e) && this.juntarProxima());
-    this.input.keyboard.off("keydown-SPACE").on("keydown-SPACE", (e) => podeAgir(this, e) && this.juntarProxima());
+    definirConfirmacaoBase(this, () => (this.pausado ? false : this.juntarProxima()));
     this.input.keyboard.off("keydown-BACKSPACE").on("keydown-BACKSPACE", () => {
       if (this.bloqueado) return;
       const ultima = this.nucleo?.itens?.[this.nucleo.itens.length - 1];

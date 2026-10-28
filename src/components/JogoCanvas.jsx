@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Phaser from "phaser";
 import { criarConfig } from "../game/config.js";
+import { tamanhoLogico, mudouDeFormato } from "../game/tamanho.js";
 import { useJogador } from "../context/JogadorContext.jsx";
 import { fases } from "../data/fases/index.js";
 import { ASSETS } from "../game/assets.js";
@@ -129,8 +130,10 @@ export default function JogoCanvas({ irPara, modo = "aventura", versus = null })
       const onConcluir = ({ faseId, status }) => salvarProgresso({ apelido, faseId, status });
 
       try {
+        const caixa = containerRef.current.getBoundingClientRect();
         jogoRef.current = new Phaser.Game(
           criarConfig(containerRef.current, {
+            tamanho: tamanhoLogico(caixa.width, caixa.height),
             fases,
             jogador: { apelido, avatar },
             onConcluir,
@@ -161,7 +164,31 @@ export default function JogoCanvas({ irPara, modo = "aventura", versus = null })
       } catch {
         /* ignora */
       }
-      const atualizarLimites = () => jogo?.scale?.refresh();
+      // Formato da janela mudou de verdade (girou o aparelho, redimensionou,
+      // entrou em tela cheia): recalcula o tamanho lógico e reorganiza a cena
+      // atual para o layout nunca ficar apertado nem sobrepor. Só dispara se o
+      // formato mudou além de ~8% (pequenos ajustes ficam por conta do FIT).
+      let timerFormato = null;
+      const reorganizarSeMudou = () => {
+        clearTimeout(timerFormato);
+        timerFormato = setTimeout(() => {
+          const el = containerRef.current;
+          if (!el || !jogo?.scale || !jogo.isBooted) return;
+          const r = el.getBoundingClientRect();
+          if (r.width < 50 || r.height < 50) return;
+          const novo = tamanhoLogico(r.width, r.height);
+          const atual = { width: jogo.scale.gameSize.width, height: jogo.scale.gameSize.height };
+          if (!mudouDeFormato(atual, novo)) return;
+          jogo.scale.setGameSize(novo.width, novo.height);
+          jogo.scene.getScenes(true).forEach((cena) => {
+            if (cena.scene.key !== "BootScene") cena.scene.restart();
+          });
+        }, 350);
+      };
+      const atualizarLimites = () => {
+        jogo?.scale?.refresh();
+        reorganizarSeMudou();
+      };
       [120, 400, 900].forEach((ms) => setTimeout(atualizarLimites, ms));
       window.addEventListener("resize", atualizarLimites);
       window.addEventListener("scroll", atualizarLimites, { passive: true });
@@ -169,6 +196,7 @@ export default function JogoCanvas({ irPara, modo = "aventura", versus = null })
       if (ro && containerRef.current) ro.observe(containerRef.current);
       document.fonts?.ready?.then(atualizarLimites);
       limpar = () => {
+        clearTimeout(timerFormato);
         window.removeEventListener("resize", atualizarLimites);
         window.removeEventListener("scroll", atualizarLimites);
         ro?.disconnect();

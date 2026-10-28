@@ -28,6 +28,25 @@ export default function App() {
     return () => mq?.removeEventListener?.("change", aplicar);
   }, []);
 
+  // Opção escolhida com o MOUSE/toque não pode ser reativada pelo teclado: o
+  // botão clicado mantém o foco, então um Enter/Espaço depois (ex.: Enter para
+  // "Começar aventura" dentro do jogo) o acionaria de novo — era o que ligava e
+  // desligava a tela cheia sem parar. Solta o foco após o clique do mouse.
+  // (Clique vindo do TECLADO tem detail 0 e não é afetado: navegar com Tab +
+  // Enter continua funcionando. Campos de texto mantêm o foco para digitar.)
+  useEffect(() => {
+    const SELETOR = 'button, [role="button"], input[type="checkbox"], input[type="radio"], input[type="range"], select, summary';
+    const soltarFoco = (e) => {
+      if (e.detail === 0) return; // veio do teclado
+      setTimeout(() => {
+        const ativo = document.activeElement;
+        if (ativo && ativo !== document.body && ativo.matches?.(SELETOR)) ativo.blur();
+      }, 0);
+    };
+    document.addEventListener("click", soltarFoco, true);
+    return () => document.removeEventListener("click", soltarFoco, true);
+  }, []);
+
   return (
     <main className="app">
       {tela === "menu" && <Menu irPara={setTela} />}

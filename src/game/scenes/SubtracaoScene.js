@@ -3,7 +3,7 @@ import { desenharCaixa } from "../desenho.js";
 import { gerarRodadasSubtracao } from "../gerarRodadas.js";
 import { falar } from "../../lib/fala.js";
 import { somAcerto, somErro, pling } from "../../lib/sfx.js";
-import { podeAgir } from "../teclado.js";
+import { definirConfirmacaoBase } from "../teclado.js";
 import FaseBase from "./FaseBase.js";
 
 // Etapa 3 — "Encher as Baterias": SUBTRAÇÃO como TIRAR (retirar do total).
@@ -62,7 +62,8 @@ export default class SubtracaoScene extends FaseBase {
     // ===== Células carregadas (arrastáveis) =====
     const cols = Math.min(6, rodada.a);
     const passo = 48;
-    const topY = this.baseY + 52;
+    const f = this.fatorEspaco(305, 0); // intervalos verticais acompanham o espaço livre
+    const topY = this.baseY + 40 + 12 * f;
     const inicioX = centro - ((cols - 1) * passo) / 2;
     for (let i = 0; i < rodada.a; i++) {
       const col = i % 6;
@@ -76,7 +77,11 @@ export default class SubtracaoScene extends FaseBase {
     // ===== Zona de descarte (uma só) =====
     const binW = Math.min(360, this.scale.width - 140);
     const binH = 96;
-    const binY = this.baseY + 214;
+    // O descarte fica logo abaixo da última fileira de células (com a folga do
+    // rótulo "Descarregar aqui" por cima), nunca em cima delas.
+    const linhasCel = Math.ceil(rodada.a / 6);
+    const fundoCelulas = topY + (linhasCel - 1) * 46 + 23;
+    const binY = fundoCelulas + binH / 2 + 24 + 14 * f;
     this.grupo.add(desenharCaixa(this, centro, binY, binW, binH, "#ff6b6b", "🗑️ Descarregar aqui"));
     this.bin = { x: centro, y: binY, w: binW, h: binH, itens: [] };
 
@@ -121,7 +126,7 @@ export default class SubtracaoScene extends FaseBase {
     falar("Tire estas!");
     const alvo = this.celulas.filter((c) => !c.descarregada).slice(0, this.rodada.b);
     alvo.forEach((c, i) => {
-      this.time.delayedCall(i * 220, () => {
+      this.agendarDica(i * 220, () => {
         pling(i);
         this.pulsar(c, 1.4, 190);
         const x = this.add
@@ -132,7 +137,7 @@ export default class SubtracaoScene extends FaseBase {
         this.tweens.add({ targets: x, alpha: 0, duration: 800, delay: 300, onComplete: () => x.destroy() });
       });
     });
-    this.time.delayedCall(alvo.length * 220 + 120, () => {
+    this.agendarDica(alvo.length * 220 + 120, () => {
       if (this.bin) this.apontar(this.bin.x, this.bin.y - this.bin.h / 2);
     });
   }
@@ -291,11 +296,10 @@ export default class SubtracaoScene extends FaseBase {
   }
 
   // ===== Teclado: Enter descarrega a próxima; Backspace recarrega a última =====
-  // podeAgir() ignora tecla SEGURADA (auto-repeat) e limita a frequência — assim
+  // O anti-spam (tecla segurada, rajada de Enter) é feito em teclado.js — assim
   // não dá para "mashar" Enter e descarregar tudo sem pensar.
   configurarTecladoDescarte() {
-    this.input.keyboard.off("keydown-ENTER").on("keydown-ENTER", (e) => podeAgir(this, e) && this.descarregarProxima());
-    this.input.keyboard.off("keydown-SPACE").on("keydown-SPACE", (e) => podeAgir(this, e) && this.descarregarProxima());
+    definirConfirmacaoBase(this, () => (this.pausado ? false : this.descarregarProxima()));
     this.input.keyboard.off("keydown-BACKSPACE").on("keydown-BACKSPACE", () => {
       if (this.bloqueado) return;
       const ultima = this.bin?.itens?.[this.bin.itens.length - 1];

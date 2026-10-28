@@ -3,7 +3,8 @@ import { TEMA } from "../tema.js";
 import { desenharFundo, criarBotao, criarPersonagem, tornarInerte } from "../desenho.js";
 import { falar } from "../../lib/fala.js";
 import { pling } from "../../lib/sfx.js";
-import { podeAgir } from "../teclado.js";
+import { iniciarConfirmacao, definirConfirmacaoBase } from "../teclado.js";
+import { chaveBadgeFase } from "../badges.js";
 
 // Onde o CosmoBot pousa em relação ao planeta em foco: à ESQUERDA, fora da
 // zona de clique (um círculo de raio 52 no centro do planeta). Assim ele nunca
@@ -37,6 +38,7 @@ export default class SelecaoFasesScene extends Phaser.Scene {
     // nenhuma outra abria: nem a próxima, nem as já concluídas. Religar a trava
     // a cada entrada no mapa é o que conserta os dois casos.
     this._entrando = false;
+    iniciarConfirmacao(this); // Enter/Espaço: um listener só (ver teclado.js)
 
     this.roteiro = this.registry.get("roteiro") || [];
     this.jogador = this.registry.get("jogador") || {};
@@ -60,13 +62,28 @@ export default class SelecaoFasesScene extends Phaser.Scene {
       .text(width / 2, 90, `⭐ ${totalEst}`, { fontFamily: TEMA.fonte, fontSize: "22px", color: "#ffe000" })
       .setOrigin(0.5);
 
-    // Grade 4 x 2.
-    const colX = [140, 313, 486, 659];
-    const rowY = [215, 380];
+    // Grade que se ADAPTA à tela: 4 colunas (3 se a tela for bem estreita), com
+    // as fileiras distribuídas entre o título (~y112) e o rodapé — nunca saem do
+    // quadro nem encostam no texto de baixo, em qualquer tamanho.
+    const { height } = this.scale;
+    const total = this.roteiro.length;
+    // 4 colunas em telas largas; 3 nas estreitas — com colunas mais folgadas o
+    // CosmoBot (que pousa ao lado da fase em foco) nunca cobre o ícone vizinho.
+    const cols = Math.max(2, Math.min(width >= 700 ? 4 : 3, Math.floor((width - 40) / 150), total || 1));
+    const linhas = Math.max(1, Math.ceil(total / cols));
+    const passoX = Math.min(173, (width - 40) / cols);
+    const topoGrade = 112;
+    const fundoGrade = height - 72; // acima do texto/botão do rodapé
+    const livre = fundoGrade - topoGrade;
+    const passoY = Math.min(185, Math.max(130, livre / linhas));
+    const primeiraY = topoGrade + livre / 2 - ((linhas - 1) * passoY) / 2;
     this.nos = [];
     this.roteiro.forEach((item, i) => {
-      const x = colX[i % 4];
-      const y = rowY[Math.floor(i / 4)];
+      const col = i % cols;
+      const colunasNaLinha = Math.min(cols, total - Math.floor(i / cols) * cols);
+      // Última fileira (se incompleta) fica centralizada.
+      const x = width / 2 + (col - (colunasNaLinha - 1) / 2) * passoX;
+      const y = primeiraY + Math.floor(i / cols) * passoY;
       this.desenharNo(item.fase, i, x, y);
     });
 
@@ -76,24 +93,24 @@ export default class SelecaoFasesScene extends Phaser.Scene {
     // Concluiu tudo? Mostra o botão de decolar (celebração final).
     const tudoFeito = this.roteiro.length > 0 && this.roteiro.every((_, i) => this.estrelas[i] != null);
     if (tudoFeito) {
-      const b = criarBotao(this, width / 2, 545, "Decolar 🚀", () => this.decolar(), {
+      const b = criarBotao(this, width / 2, height - 50, "Decolar 🚀", () => this.decolar(), {
         largura: 300,
         altura: 62,
         fontSize: "26px",
         cor: 0x2bff88,
       });
       b.setFoco(true);
-      this.input.keyboard.off("keydown-ENTER").on("keydown-ENTER", (e) => {
-        if (podeAgir(this, e)) this.decolar();
-      });
+      definirConfirmacaoBase(this, () => this.decolar());
       falar("Você concluiu todas as fases! Toque em decolar!");
     } else {
       const proxima = this.roteiro.findIndex((_, i) => this.estrelas[i] == null);
       this.add
-        .text(width / 2, 545, "Toque numa fase para jogar (ou use as setas e Enter)", {
+        .text(width / 2, height - 36, "Toque numa fase para jogar (ou use as setas e Enter)", {
           fontFamily: TEMA.fonte,
           fontSize: "16px",
           color: "#94a3b8",
+          align: "center",
+          wordWrap: { width: width - 40 },
         })
         .setOrigin(0.5);
       const nome = this.roteiro[proxima]?.fase?.modulo;
@@ -174,8 +191,8 @@ export default class SelecaoFasesScene extends Phaser.Scene {
   }
 
   // Setas movem o foco entre as fases liberadas; Enter joga a fase em foco (fora
-  // do estado "tudo feito", onde o Enter já dispara o decolar). Passa por
-  // podeAgir() para não sofrer com o "spam" de Enter herdado da tela anterior.
+  // do estado "tudo feito", onde o Enter já dispara o decolar). O anti-spam de Enter
+  // herdado da tela anterior é feito por teclado.js.
   configurarTecladoMapa(tudoFeito) {
     if (!this.nos.length) return;
     // Começa o foco na primeira fase liberada ainda não concluída.
@@ -195,12 +212,11 @@ export default class SelecaoFasesScene extends Phaser.Scene {
     this.input.keyboard.off("keydown-DOWN").on("keydown-DOWN", () => mover(1));
     this.input.keyboard.off("keydown-LEFT").on("keydown-LEFT", () => mover(-1));
     this.input.keyboard.off("keydown-UP").on("keydown-UP", () => mover(-1));
-    this.input.keyboard.off("keydown-ENTER");
     if (!tudoFeito) {
-      this.input.keyboard.on("keydown-ENTER", (e) => {
-        if (!podeAgir(this, e)) return;
+      definirConfirmacaoBase(this, () => {
         const n = this.nos[this.focoSel];
-        if (n) this.escolher(n.i, n.fase);
+        if (!n) return false;
+        this.escolher(n.i, n.fase);
       });
     }
   }
@@ -222,7 +238,7 @@ export default class SelecaoFasesScene extends Phaser.Scene {
 
     // Anel/medalhão. Se existir a arte da badge (badge-1..8), usa a imagem —
     // com BRILHO conforme o nível conquistado (item 13).
-    const chaveBadge = `badge-${i + 1}`;
+    const chaveBadge = chaveBadgeFase(fase, i);
     if (concluida && this.textures.exists(chaveBadge)) {
       const nivel = this.badges[i]?.nivel || 1;
       // Halo dourado por trás (mais forte e pulsante quanto maior o nível).

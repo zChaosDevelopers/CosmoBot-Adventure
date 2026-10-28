@@ -36,30 +36,44 @@ export default class ContagemScene extends FaseBase {
     const centro = this.desenharCabecalho();
     const rodada = this.rodadas[this.rodadaAtual];
 
-    // Painel de fundo.
-    const cols = Math.min(5, rodada.quantidade);
-    const linhas = Math.ceil(rodada.quantidade / 5);
-    const passo = 76;
-    const largura = cols * passo + 40;
-    const altura = linhas * 72 + 30;
-    const topo = this.baseY + 62;
+    // Painel de fundo — a grade se ADAPTA ao espaço livre entre o cabeçalho e as
+    // respostas: poucas luzes ficam folgadas, muitas (até 12+) ganham mais colunas
+    // e linhas mais juntas, mas nunca passam por baixo dos botões.
+    const total = rodada.quantidade;
+    const livre = this.alturaLivre(rodada.opcoes.length);
+    const larguraMax = this.scale.width - 90; // mesma folga lateral do restante da tela
+    let passoX = 76;
+    // Colunas: o mínimo que mantém a grade baixa o bastante para o espaço livre.
+    let cols = Math.min(5, total);
+    const maxCols = Math.max(3, Math.floor((larguraMax - 40) / 60));
+    while (Math.ceil(total / cols) * 56 + 26 > livre && cols < Math.min(maxCols, total)) cols++;
+    passoX = Math.min(76, (larguraMax - 40) / cols);
+    const linhas = Math.ceil(total / cols);
+    const passoY = Math.min(72, Math.max(46, (livre - 26) / linhas));
+    const raio = Math.min(22, Math.floor(passoY * 0.34));
+    const largura = cols * passoX + 40;
+    const altura = linhas * passoY + 26;
+    // Centraliza a grade na folga vertical disponível (um pouco mais perto do topo).
+    const topoPainel = this.baseY + Math.max(2, (livre - altura) * 0.35);
     const painel = this.add.graphics();
     painel.fillStyle(0x0f172a, 0.55);
     painel.lineStyle(3, 0x475569, 0.9);
-    painel.fillRoundedRect(centro - largura / 2, topo - 40, largura, altura, 16);
-    painel.strokeRoundedRect(centro - largura / 2, topo - 40, largura, altura, 16);
+    painel.fillRoundedRect(centro - largura / 2, topoPainel, largura, altura, 16);
+    painel.strokeRoundedRect(centro - largura / 2, topoPainel, largura, altura, 16);
+    painel.caixaAbs = { x0: centro - largura / 2, y0: topoPainel, x1: centro + largura / 2, y1: topoPainel + altura };
     this.grupo.add(painel);
 
     // Luzes acesas (a contar).
     this.itens = [];
+    const passo = passoX;
     const inicioX = centro - ((cols - 1) * passo) / 2;
-    for (let i = 0; i < rodada.quantidade; i++) {
-      const col = i % 5;
-      const row = Math.floor(i / 5);
+    for (let i = 0; i < total; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
       const x = inicioX + col * passo;
-      const y = topo + row * 72;
+      const y = topoPainel + 13 + passoY / 2 + row * passoY;
       const cor = TEMA.coresCristal[i % TEMA.coresCristal.length];
-      const luz = desenharLuz(this, x, y, cor, true, 22);
+      const luz = desenharLuz(this, x, y, cor, true, raio);
       this.grupo.add(luz);
       this.itemInterativo(luz);
       this.itens.push(luz);
@@ -128,7 +142,7 @@ export default class ContagemScene extends FaseBase {
     if (this.bloqueado || this.pausado) return;
     falar("Conte comigo, uma de cada vez!");
     this.itens.forEach((c, i) => {
-      this.time.delayedCall(i * 340, () => {
+      this.agendarDica(i * 340, () => {
         pling(i);
         this.pulsar(c, 1.4, 220);
       });

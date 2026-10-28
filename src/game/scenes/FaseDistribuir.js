@@ -3,7 +3,7 @@ import { TEMA } from "../tema.js";
 import { desenharCaixa } from "../desenho.js";
 import { falar } from "../../lib/fala.js";
 import { somAcerto, pling } from "../../lib/sfx.js";
-import { podeAgir } from "../teclado.js";
+import { definirConfirmacaoBase } from "../teclado.js";
 import FaseBase from "./FaseBase.js";
 
 // Base para as fases de DISTRIBUIR itens igualmente em zonas — hoje a Divisão
@@ -51,9 +51,12 @@ export default class FaseDistribuir extends FaseBase {
     this.grupo.add(rot);
 
     // ===== Reservatório de peças (arrastáveis) =====
-    const rcols = Math.min(8, cfg.total);
+    // Mais colunas em telas largas deixam o reservatório mais baixo (sobra altura
+    // para as zonas); em telas estreitas respeita a largura disponível.
+    const rcols = Math.min(Math.max(4, Math.floor((this.scale.width - 120) / 40)), 10, cfg.total);
+    const rlinhas = Math.ceil(cfg.total / rcols);
     const rpasso = 40;
-    const rtopY = this.baseY + 44;
+    const rtopY = this.baseY + 40;
     const rinicioX = centro - ((rcols - 1) * rpasso) / 2;
     for (let i = 0; i < cfg.total; i++) {
       const col = i % rcols;
@@ -63,13 +66,18 @@ export default class FaseDistribuir extends FaseBase {
     }
 
     // ===== Zonas de destino (tanques / motores) =====
+    // A altura da zona se ajusta ao que sobra da tela (entre o reservatório e o
+    // rodapé), para o contador e a mensagem final nunca saírem do quadro.
     const n = cfg.nZonas;
     const zW = 92;
-    const zH = 150;
+    const reservBase = rtopY + (rlinhas - 1) * 34 + 14; // fundo das peças do reservatório
+    const rodape = this.scale.height - 48; // linha da mensagem final / dica
+    const folga = rodape - reservBase - 14 /*rótulo*/ - 14 /*respiro*/ - 36 /*contador*/;
+    const zH = Math.max(112, Math.min(170, folga));
     const gap = Math.min(52, (this.scale.width - 80 - n * zW) / Math.max(1, n - 1));
     const totalW = n * zW + (n - 1) * gap;
     const startX = centro - totalW / 2 + zW / 2;
-    const zY = this.baseY + 224;
+    const zY = reservBase + 14 + 14 + zH / 2;
 
     for (let k = 0; k < n; k++) {
       const zx = startX + k * (zW + gap);
@@ -149,9 +157,18 @@ export default class FaseDistribuir extends FaseBase {
   }
 
   reorganizar(zona) {
+    // Empilha as peças de baixo para cima DENTRO da zona. Se a zona é baixa e há
+    // muitas peças, usa duas colunas para nenhuma sair do retângulo.
     const baseY = zona.y + zona.h / 2 - 20;
+    const alvo = Math.max(zona.itens.length, this.alvoPorZona || 1, 1);
+    const util = zona.h - 34;
+    const duasColunas = util / alvo < 26;
+    const linhas = duasColunas ? Math.ceil(alvo / 2) : alvo;
+    const passo = Math.min(28, util / Math.max(1, linhas));
     zona.itens.forEach((g, i) => {
-      this.tweens.add({ targets: g, x: zona.x, y: baseY - i * 28, duration: 160, ease: "Quad.easeOut" });
+      const linha = duasColunas ? Math.floor(i / 2) : i;
+      const dx = duasColunas ? (i % 2 === 0 ? -14 : 14) : 0;
+      this.tweens.add({ targets: g, x: zona.x + dx, y: baseY - linha * passo, duration: 160, ease: "Quad.easeOut" });
     });
     zona.contador.setText(String(zona.itens.length));
   }
@@ -282,7 +299,7 @@ export default class FaseDistribuir extends FaseBase {
       }
       const livre = this.pecas.find((g) => g.zona === null);
       this.colocarNaZona(livre, z0);
-      this.time.delayedCall(220, passo);
+      this.agendarDica(220, passo);
     };
     passo();
   }
@@ -293,9 +310,9 @@ export default class FaseDistribuir extends FaseBase {
   configurarTecladoZonas() {
     this.input.keyboard.off("keydown-RIGHT").on("keydown-RIGHT", () => this.moverFocoZona(1));
     this.input.keyboard.off("keydown-LEFT").on("keydown-LEFT", () => this.moverFocoZona(-1));
-    // podeAgir() ignora tecla SEGURADA (auto-repeat) e limita a frequência.
-    this.input.keyboard.off("keydown-ENTER").on("keydown-ENTER", (e) => !this.pausado && podeAgir(this, e) && this.acaoTecladoZona());
-    this.input.keyboard.off("keydown-SPACE").on("keydown-SPACE", (e) => !this.pausado && podeAgir(this, e) && this.acaoTecladoZona());
+    // Enter/Espaço enchem a zona em foco. O anti-spam (tecla segurada, rajada) é
+    // feito por teclado.js, que também garante que só UMA ação reage por Enter.
+    definirConfirmacaoBase(this, () => (this.pausado ? false : this.acaoTecladoZona()));
     this.input.keyboard.off("keydown-BACKSPACE").on("keydown-BACKSPACE", () => this.tirarDaZona());
   }
 

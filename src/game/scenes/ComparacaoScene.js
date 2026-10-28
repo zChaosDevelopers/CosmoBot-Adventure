@@ -43,9 +43,15 @@ export default class ComparacaoScene extends FaseBase {
     // Com o painel da conta no topo, o conteúdo desce ~70px. Os painéis foram
     // compactados na mesma medida para os números de baixo não ficarem
     // escondidos atrás dos botões de resposta.
-    const cy = this.baseY + 100;
-    this.ladoEsq = this.desenharLado(centro - 150, cy, rodada.a);
-    this.ladoDir = this.desenharLado(centro + 150, cy, rodada.b);
+    // A altura dos painéis se ajusta ao espaço livre (entre o cabeçalho e os
+    // botões de sinal) — o número embaixo de cada painel nunca encosta nos botões.
+    const livre = this.alturaLivre(rodada.opcoes.length);
+    const painelH = Math.max(112, Math.min(170, livre - 56));
+    const sobra = Math.max(0, livre - (painelH + 52));
+    const cy = this.baseY + painelH / 2 + 4 + sobra * 0.3;
+    const desloc = Math.min(150, (this.scale.width - 230) / 2); // painéis lado a lado, sempre dentro da tela
+    this.ladoEsq = this.desenharLado(centro - desloc, cy, rodada.a, painelH);
+    this.ladoDir = this.desenharLado(centro + desloc, cy, rodada.b, painelH);
     this.itens = [...this.ladoEsq.dots, ...this.ladoDir.dots];
 
     // Caixa do sinal (no meio): um "?" que vira o sinal escolhido no acerto.
@@ -67,32 +73,36 @@ export default class ComparacaoScene extends FaseBase {
   }
 
   // Desenha um painel com N bolinhas + o número embaixo. Retorna {dots, x, y}.
-  desenharLado(cx, cy, n) {
+  desenharLado(cx, cy, n, painelH = 170) {
+    const meio = painelH / 2;
     const painel = this.add.graphics();
     painel.fillStyle(0x0f172a, 0.5);
     painel.lineStyle(3, 0x475569, 0.9);
-    painel.fillRoundedRect(cx - 95, cy - 85, 190, 170, 16);
-    painel.strokeRoundedRect(cx - 95, cy - 85, 190, 170, 16);
+    painel.fillRoundedRect(cx - 95, cy - meio, 190, painelH, 16);
+    painel.strokeRoundedRect(cx - 95, cy - meio, 190, painelH, 16);
+    painel.caixaAbs = { x0: cx - 95, y0: cy - meio, x1: cx + 95, y1: cy + meio };
     this.grupo.add(painel);
 
     const dots = [];
     const cols = 3;
-    const passo = 44;
     const linhas = Math.ceil(n / cols);
+    // Bolinhas menores/mais juntas se o painel é baixo; nunca saem do painel.
+    const passo = Math.min(44, Math.max(30, (painelH - 40) / Math.max(1, linhas)));
+    const raio = Math.min(17, Math.floor(passo * 0.42));
     const colsUsadas = Math.min(cols, n);
     const startX = cx - ((colsUsadas - 1) * passo) / 2;
-    const startY = cy - 20 - ((linhas - 1) * passo) / 2;
+    const startY = cy - ((linhas - 1) * passo) / 2;
     for (let i = 0; i < n; i++) {
       const col = i % cols;
       const row = Math.floor(i / cols);
       const cor = TEMA.coresCristal[i % TEMA.coresCristal.length];
-      const d = this.add.circle(startX + col * passo, startY + row * passo, 17, cor);
+      const d = this.add.circle(startX + col * passo, startY + row * passo, raio, cor);
       d.setStrokeStyle(3, 0xffffff, 0.5);
       this.grupo.add(d);
       dots.push(d);
     }
     const num = this.add
-      .text(cx, cy + 102, `${n}`, {
+      .text(cx, cy + meio + 26, `${n}`, {
         fontFamily: TEMA.fonte,
         fontSize: this.fs("40px"),
         color: "#ffffff",
@@ -133,20 +143,8 @@ export default class ComparacaoScene extends FaseBase {
       });
     });
 
-    // A conta completa salta embaixo (ex.: "5 > 3").
-    const msg = this.add
-      .text(this.scale.width / 2, this.scale.height - 118, `${r.a} ${sinal} ${r.b} 🎉`, {
-        fontFamily: TEMA.fonte,
-        fontSize: this.fs("30px"),
-        color: "#ffffff",
-        fontStyle: "bold",
-      })
-      .setOrigin(0.5)
-      .setScale(0);
-    msg.setStroke("#0b1120", 5);
-    this.grupo.add(msg);
-    this.tweens.add({ targets: msg, scale: 1, duration: 420, delay: 200, ease: "Back.easeOut" });
-
+    // A conta completa ("5 > 3") já aparece em verde no painel do topo e o "?"
+    // virou o sinal: não há mais texto extra sobre os botões de resposta.
     falar(this.narracao(sinal));
     this.time.delayedCall(1200, () => this.animarColeta(this.itens, () => this.aposAcerto()));
   }
@@ -185,14 +183,14 @@ export default class ComparacaoScene extends FaseBase {
     const esq = this.ladoEsq.dots;
     const dir = this.ladoDir.dots;
     esq.forEach((d, i) => {
-      this.time.delayedCall(i * 180, () => {
+      this.agendarDica(i * 180, () => {
         pling(i);
         this.pulsar(d, 1.4, 160);
       });
     });
     const off = esq.length * 180 + 350;
     dir.forEach((d, i) => {
-      this.time.delayedCall(off + i * 180, () => {
+      this.agendarDica(off + i * 180, () => {
         pling(i);
         this.pulsar(d, 1.4, 160);
       });

@@ -208,7 +208,21 @@ export function gerarRodadasSequencia(n = 4, max = 20) {
 export function gerarRodadasDesafio(n = 6) {
   const tipos = ["soma3", "somaGrande", "subtracao", "multiplicacao", "divisao", "sequencia"];
   // Opções para números maiores: distratores próximos (± poucos), sempre distintos.
-  const opcoesGrande = (correta) => gerarOpcoes(correta, Math.max(1, correta - 9), correta + 9, 6, 5);
+  // REGRA dos 3 dígitos: número com centena só aparece se for CENTENA EXATA (100,
+  // 200, 300... nunca 110 ou 167). Então, se a resposta tem 3 dígitos, as
+  // alternativas erradas também são centenas exatas (passos de 100).
+  const opcoesGrande = (correta) => {
+    if (correta < 100) return gerarOpcoes(correta, Math.max(1, correta - 9), correta + 9, 6, 5);
+    const set = new Set([correta]);
+    let tentativas = 0;
+    while (set.size < 5 && tentativas < 100) {
+      tentativas++;
+      const d = correta + entre(-4, 4) * 100;
+      if (d >= 100 && d <= 900) set.add(d); // fica em 3 dígitos (nada de 1000)
+    }
+    for (let d = 100; set.size < 5 && d <= 900; d += 100) set.add(d); // completa se faltar
+    return embaralhar([...set]);
+  };
 
   const fabricar = (tipo) => {
     if (tipo === "soma3") {
@@ -217,8 +231,10 @@ export function gerarRodadasDesafio(n = 6) {
       return { tipo, icone: "➕", prompt: `${a} + ${b} + ${c}`, quantidade: r, opcoes: opcoesGrande(r) };
     }
     if (tipo === "somaGrande") {
-      const a = entre(11, 99);       // xx
-      const b = entre(100, 499);     // xxx
+      // Soma de CENTENAS exatas: 100 + 200 = 300. Assim a conta, o resultado e as
+      // alternativas de 3 dígitos são sempre centenas redondas (nunca 167 ou 110).
+      const a = entre(1, 4) * 100;   // 100, 200, 300, 400
+      const b = entre(1, 4) * 100;
       const r = a + b;
       return { tipo, icone: "➕", prompt: `${a} + ${b}`, quantidade: r, opcoes: opcoesGrande(r) };
     }

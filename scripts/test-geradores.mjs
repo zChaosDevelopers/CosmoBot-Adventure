@@ -15,6 +15,7 @@ import {
   gerarRodadasDesafio,
   gerarRodadasVersus,
 } from "../src/game/gerarRodadas.js";
+import { nomeImproprio, nomeSeguro, validarNome } from "../src/lib/filtroNomes.js";
 
 let falhas = 0;
 function ok(condicao, msg) {
@@ -116,11 +117,17 @@ for (let i = 0; i < REPETICOES; i++) {
   const rodadas = gerarRodadasDesafio(6);
   ok(rodadas.length === 6, "desafio: deve ter 6 questões");
   ok(rodadas[0].tipo === "soma3" && rodadas[0].prompt.split("+").length === 3, "desafio: 1ª deve ser A+B+C");
-  ok(rodadas[1].tipo === "somaGrande", "desafio: 2ª deve ser soma grande (xx+xxx)");
+  ok(rodadas[1].tipo === "somaGrande", "desafio: 2ª deve ser soma grande (centenas exatas)");
   for (const r of rodadas) {
     ok(typeof r.prompt === "string" && r.prompt.length > 0, "desafio: cada questão tem prompt (conta)");
     ok(typeof r.quantidade === "number", "desafio: resposta deve ser número");
     checarOpcoes(r, `desafio(${r.tipo})`, 5);
+    // Regra: número de 3 dígitos só se for centena exata (100, 200, 300...) — vale
+    // para as parcelas da conta, para a resposta e para todas as alternativas.
+    const numeros = [...r.prompt.matchAll(/\d+/g)].map((m) => Number(m[0]));
+    for (const n of [...numeros, r.quantidade, ...r.opcoes]) {
+      if (n >= 100) ok(n % 100 === 0 && n <= 900, `desafio(${r.tipo}): ${n} não é centena exata de 3 dígitos`);
+    }
   }
 }
 
@@ -149,6 +156,19 @@ for (let i = 0; i < REPETICOES; i++) {
       ok(r.quantidade >= 0, `versus: resposta negativa em "${r.prompt}"`);
     }
   }
+}
+
+// ===== Filtro de nomes impróprios =====
+{
+  const barrados = ["puta", "PUTA", "p u t a", "p.u.t.a", "puuuuta", "put4", "caralho", "xcaralhox", "c4ralh0", "Merda", "m3rd4",
+    "buceta", "fdp", "F.D.P", "vsf", "cu", "idiota123", "viado", "fuck", "f u c k", "shit", "Bitch", "porra", "porrada", "hitler", "rola", "sexo"];
+  const liberados = ["Gustavo", "gustavo9999999", "Maria", "Ana Clara", "Computador", "Cuca", "Alexandre", "Pedro", "Pinto", "Rolando",
+    "Picanha", "Cassio", "Estrelinha", "Explorador", "Jogador 1", "Rafaela", "Bia", "Matarazzo", "Analu", "Sexta", "Escurinho"];
+  for (const n of barrados) ok(nomeImproprio(n), `filtro: "${n}" deveria ser barrado`);
+  for (const n of liberados) ok(!nomeImproprio(n), `filtro: "${n}" deveria ser liberado`);
+  ok(nomeSeguro("puta") === "Explorador", "filtro: nomeSeguro troca nome impróprio");
+  ok(nomeSeguro("Maria") === "Maria", "filtro: nomeSeguro mantém nome normal");
+  ok(validarNome("caralho").ok === false && validarNome("Bia").ok === true, "filtro: validarNome");
 }
 
 if (falhas === 0) {
