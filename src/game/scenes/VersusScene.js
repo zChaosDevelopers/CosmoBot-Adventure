@@ -19,9 +19,10 @@ import { iniciarConfirmacao, definirConfirmacaoBase } from "../teclado.js";
 //   Jogador 1 (esquerda):  A  S  D
 //   Jogador 2 (direita):   ←  ↓  →
 //
-// No CELULAR/TABLET não há teclado: a tela é DIVIDIDA — cada jogador ganha os
-// seus próprios 3 botões de resposta (Jogador 1 à esquerda, Jogador 2 à direita)
-// e os dois podem tocar ao mesmo tempo (multitoque).
+// No CELULAR/TABLET não há teclado: a tela é DIVIDIDA em cima/embaixo — cada
+// jogador ganha os seus próprios 3 botões de resposta (Jogador 1 embaixo,
+// Jogador 2 em cima, de cabeça para baixo, como numa mesa) e a conta fica no
+// meio. Os dois podem tocar ao mesmo tempo (multitoque).
 //
 // É um modo SEPARADO: não mexe nas 8 fases da aventura, não altera progresso
 // nem ranking.
@@ -31,9 +32,13 @@ import { iniciarConfirmacao, definirConfirmacaoBase } from "../teclado.js";
 function detectarToque() {
   try {
     if (new URLSearchParams(window.location.search).get("toque") === "1") return true;
-    const grosso = window.matchMedia?.("(pointer: coarse)")?.matches;
+    const grosso = window.matchMedia?.("(pointer: coarse)")?.matches || window.matchMedia?.("(any-pointer: coarse)")?.matches;
     const temToque = (navigator.maxTouchPoints || 0) > 0;
-    return !!grosso || (temToque && window.innerWidth < 900);
+    const aparelhoMovel = /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent || "");
+    const ladoMenor = Math.min(window.innerWidth, window.innerHeight);
+    // celular/tablet: ponteiro grosso, UA móvel, ou toque numa tela pequena/média.
+    // Janela estreita também (alguém testando no PC redimensionando a janela).
+    return !!grosso || aparelhoMovel || (temToque && ladoMenor < 1100) || window.innerWidth < 700;
   } catch {
     return false;
   }
@@ -77,6 +82,7 @@ export default class VersusScene extends Phaser.Scene {
       if (falta > 0) this.input.addPointer(falta);
     }
 
+    this.geo = this.modoToque ? this.calcularGeometriaToque() : null;
     iniciarConfirmacao(this); // Enter/Espaço: um listener só, com camadas (ver teclado.js)
     desenharFundo(this, { planeta: false });
     this.desenharTopo();
@@ -94,7 +100,7 @@ export default class VersusScene extends Phaser.Scene {
       linhas: [
         "Os dois veem a mesma conta e correm para tocar na resposta certa.",
         toque
-          ? "Cada jogador usa os seus botões: Jogador 1 na esquerda, Jogador 2 na direita."
+          ? "Cada jogador usa os seus botões: Jogador 1 embaixo, Jogador 2 em cima."
           : "Jogador 1 usa A, S, D. Jogador 2 usa as setas ← ↓ →.",
         `Quem acertar primeiro leva o ponto. Vence quem chegar a ${this.meta} pontos!`,
       ],
@@ -102,11 +108,27 @@ export default class VersusScene extends Phaser.Scene {
         this.montarRodada();
         anunciar(
           toque
-            ? "Modo dois jogadores. Jogador 1 toca nos botões da esquerda. Jogador 2 toca nos botões da direita."
+            ? "Modo dois jogadores. Jogador 1 toca nos botões de baixo. Jogador 2 toca nos botões de cima."
             : "Modo dois jogadores. Jogador 1 usa A, S e D. Jogador 2 usa as setas."
         );
       },
     });
+  }
+
+  // Medidas da tela dividida (celular/tablet): painel do J2 em cima, conta no
+  // meio, painel do J1 embaixo. Cada painel: cabeçalho (robô, nome, bolinhas) +
+  // 3 botões lado a lado.
+  calcularGeometriaToque() {
+    const { width: W, height: H } = this.scale;
+    const margem = 10;
+    const painelH = Math.max(150, Math.min(340, Math.floor((H - 190 - 2 * margem) / 2)));
+    return { W, H, margem, painelW: W - 2 * margem, painelH, cabecalhoH: 46, folga: 8, cy: H / 2 };
+  }
+
+  // Centro Y do painel de cada jogador (J1 embaixo, J2 em cima).
+  yPainel(j) {
+    const { H, margem, painelH } = this.geo;
+    return j === 1 ? margem + painelH / 2 : H - margem - painelH / 2;
   }
 
   sair() {
@@ -116,6 +138,15 @@ export default class VersusScene extends Phaser.Scene {
 
   desenharTopo() {
     const { width, height } = this.scale;
+    if (this.modoToque) {
+      // Sem teclado não há Esc: botão de sair na faixa do meio, junto da rodada.
+      const y = this.geo.cy - 73;
+      this.rodadaTxt = this.add
+        .text(width / 2, y, "", { fontFamily: TEMA.fonte, fontSize: "15px", color: "#94a3b8", align: "center", wordWrap: { width: width - 200 } })
+        .setOrigin(0.5);
+      criarBotao(this, 54, y, "✖ Sair", () => this.sair(), { largura: 88, altura: 38, fontSize: "16px", cor: 0x334155 });
+      return;
+    }
     this.add
       .text(width / 2, 30, "👥 2 Jogadores", {
         fontFamily: TEMA.fonte,
@@ -127,11 +158,6 @@ export default class VersusScene extends Phaser.Scene {
     this.rodadaTxt = this.add
       .text(width / 2, 58, "", { fontFamily: TEMA.fonte, fontSize: "16px", color: "#94a3b8", align: "center", wordWrap: { width: width - 200 } })
       .setOrigin(0.5);
-    if (this.modoToque) {
-      // Sem teclado não há Esc: um botão de sair no canto.
-      criarBotao(this, 54, 30, "✖ Sair", () => this.sair(), { largura: 88, altura: 38, fontSize: "16px", cor: 0x334155 });
-      return;
-    }
     this.add
       .text(width / 2, height - 22, "Esc para sair  •  quem apertar primeiro na resposta certa leva o ponto", {
         fontFamily: TEMA.fonte,
@@ -145,6 +171,10 @@ export default class VersusScene extends Phaser.Scene {
 
   // Robô, nome e as 5 bolinhas de ponto de cada jogador, um em cada canto.
   desenharPlacar() {
+    if (this.modoToque) {
+      this.desenharPlacarToque();
+      return;
+    }
     const { width } = this.scale;
     this.placar = [];
     [
@@ -181,6 +211,45 @@ export default class VersusScene extends Phaser.Scene {
     });
   }
 
+  // Tela dividida: o cabeçalho de cada painel (robô, nome, bolinhas). O painel do
+  // J2 é girado 180° para quem joga de frente ler de cabeça para cima.
+  desenharPlacarToque() {
+    const { W, painelW, painelH, cabecalhoH } = this.geo;
+    this.placar = [];
+    this.paineis = [];
+    this.jogadores.forEach((jog, j) => {
+      const p = this.add.container(W / 2, this.yPainel(j));
+      if (j === 1) p.setAngle(180);
+      const fundo = this.add.graphics();
+      fundo.fillStyle(jog.corNum, 0.1);
+      fundo.fillRoundedRect(-painelW / 2, -painelH / 2, painelW, painelH, 22);
+      fundo.lineStyle(3, jog.corNum, 0.55);
+      fundo.strokeRoundedRect(-painelW / 2, -painelH / 2, painelW, painelH, 22);
+      p.add(fundo);
+
+      const hy = -painelH / 2 + cabecalhoH / 2 + 4;
+      const robo = desenharRobo(this, -painelW / 2 + 34, hy + 3, jog.cor, 34);
+      tornarInerte(robo);
+      p.add(robo);
+      p.add(
+        this.add
+          .text(-painelW / 2 + 64, hy, jog.nome, { fontFamily: TEMA.fonte, fontSize: "17px", color: "#ffffff", fontStyle: "bold" })
+          .setOrigin(0, 0.5)
+      );
+      const bolas = [];
+      const passo = 22;
+      const ultimo = painelW / 2 - 26;
+      for (let k = 0; k < this.meta; k++) {
+        const b = this.add.circle(ultimo - (this.meta - 1 - k) * passo, hy, 8, 0x1e293b, 1);
+        b.setStrokeStyle(2, jog.corNum, 0.8);
+        p.add(b);
+        bolas.push(b);
+      }
+      this.placar.push({ robo, bolas });
+      this.paineis.push(p);
+    });
+  }
+
   atualizarPlacar() {
     this.placar.forEach((p, j) => {
       p.bolas.forEach((b, k) => {
@@ -198,14 +267,20 @@ export default class VersusScene extends Phaser.Scene {
 
     const { width } = this.scale;
     const centro = width / 2;
+    const toque = this.modoToque;
     const q = this.rodadas[this.rodadaAtual];
     this.q = q;
-    this.rodadaTxt.setText(`Rodada ${this.rodadaAtual + 1}  •  vence quem fizer ${this.meta} pontos primeiro`);
+    this.rodadaTxt.setText(
+      toque
+        ? `Rodada ${this.rodadaAtual + 1}  •  meta: ${this.meta} pontos`
+        : `Rodada ${this.rodadaAtual + 1}  •  vence quem fizer ${this.meta} pontos primeiro`
+    );
 
     // ===== A conta, grande no centro =====
-    const bw = Math.max(240, Math.min(420, width - 280));
-    const bh = 104;
-    const ey = 150;
+    const bw = toque ? Math.min(420, width - 60) : Math.max(240, Math.min(420, width - 280));
+    const bh = toque ? 84 : 104;
+    const ey = toque ? this.geo.cy - 2 : 150;
+    this.yMsg = ey + (toque ? 62 : 86); // onde aparecem "marcou!" / "essa era a resposta"
     const g = this.add.graphics();
     g.fillStyle(0x0b1120, 0.92);
     g.fillRoundedRect(centro - bw / 2, ey - bh / 2, bw, bh, 18);
@@ -216,7 +291,7 @@ export default class VersusScene extends Phaser.Scene {
     this.contaTxt = this.add
       .text(centro, ey, `${q.prompt} = ?`, {
         fontFamily: TEMA.fonte,
-        fontSize: "40px",
+        fontSize: toque ? "36px" : "40px",
         color: "#ffffff",
         fontStyle: "bold",
       })
@@ -284,41 +359,26 @@ export default class VersusScene extends Phaser.Scene {
     });
   }
 
-  // TELA DIVIDIDA (celular/tablet): dois painéis lado a lado, cada um com os 3
-  // botões de resposta do seu jogador, empilhados. Os dois painéis mostram os
-  // mesmos números, na mesma ordem — a disputa continua justa — e tocam ao mesmo
-  // tempo. Cada cartão lógico (this.cartoes[i]) guarda os dois botões dessa opção.
+  // TELA DIVIDIDA (celular/tablet): um painel em cima (J2, de cabeça para baixo) e
+  // outro embaixo (J1), cada um com os 3 botões de resposta lado a lado. Os dois
+  // painéis mostram os mesmos números, na mesma ordem — a disputa continua justa —
+  // e tocam ao mesmo tempo. Cada cartão lógico (this.cartoes[i]) guarda os dois
+  // botões dessa opção.
   desenharOpcoesToque(opcoes) {
-    const { width: W, height: H } = this.scale;
-    const topo = 268;
-    const base = H - 14;
-    const folga = 10;
-    const painelW = Math.floor(W / 2 - 18);
-    const tituloH = 30;
-    // Botões grandes (dedo de criança): usam a altura que sobrar, até 180px.
-    const A = Math.max(64, Math.min(180, Math.floor((base - topo - tituloH - folga * 3) / 3)));
-    const L = Math.min(painelW - 24, 280);
-    const painelH = tituloH + 3 * A + 4 * folga;
+    const { W, painelW, painelH, cabecalhoH, folga } = this.geo;
+    const A = painelH - cabecalhoH - folga * 2;
+    const L = Math.min(260, Math.floor((painelW - 40) / 3));
+    const gap = 12;
     this.cartoes = opcoes.map((valor) => ({ valor, L, A, toque: [] }));
 
     this.jogadores.forEach((jog, j) => {
-      const cx = j === 0 ? W / 4 : (W * 3) / 4;
-
-      const fundo = this.add.graphics();
-      fundo.fillStyle(jog.corNum, 0.1);
-      fundo.fillRoundedRect(cx - painelW / 2, topo, painelW, painelH, 22);
-      fundo.lineStyle(3, jog.corNum, 0.55);
-      fundo.strokeRoundedRect(cx - painelW / 2, topo, painelW, painelH, 22);
-      this.grupo.add(fundo);
-
-      const nome = this.add
-        .text(cx, topo + 18, jog.nome, { fontFamily: TEMA.fonte, fontSize: "17px", color: "#ffffff", fontStyle: "bold" })
-        .setOrigin(0.5);
-      this.grupo.add(nome);
+      const pc = this.add.container(W / 2, this.yPainel(j));
+      if (j === 1) pc.setAngle(180);
+      this.grupo.add(pc);
+      const y = -painelH / 2 + cabecalhoH + folga + A / 2;
 
       opcoes.forEach((valor, i) => {
-        const y = topo + tituloH + folga + A / 2 + i * (A + folga);
-        const c = this.add.container(cx, y);
+        const c = this.add.container((i - 1) * (L + gap), y);
         const g = this.add.graphics();
         c.add(g);
         const num = this.add
@@ -331,7 +391,7 @@ export default class VersusScene extends Phaser.Scene {
           this.tweens.add({ targets: c, scale: 0.94, duration: 70, yoyo: true });
           this.responder(j, i);
         });
-        this.grupo.add(c);
+        pc.add(c);
         const botao = { c, g, num, L, A, corBorda: jog.corNum };
         this.cartoes[i].toque[j] = botao;
         this.pintarBotaoToque(botao, jog.corNum);
@@ -402,10 +462,10 @@ export default class VersusScene extends Phaser.Scene {
 
     // O robô do vencedor da rodada comemora.
     const robo = this.placar[jogador]?.robo;
-    if (robo) this.tweens.add({ targets: robo, y: robo.y - 18, duration: 180, yoyo: true, repeat: 1 });
+    if (robo) this.tweens.add({ targets: robo, y: robo.y - (this.modoToque ? 6 : 18), duration: 180, yoyo: true, repeat: 1 });
 
     const msg = this.add
-      .text(this.scale.width / 2, 150 + 52 + 34, `${jog.nome} marcou! 🎉`, {
+      .text(this.scale.width / 2, this.yMsg, `${jog.nome} marcou! 🎉`, {
         fontFamily: TEMA.fonte,
         fontSize: this.modoToque ? "20px" : "24px", // no celular não pode passar por cima das bolinhas do placar
         color: "#2bff88",
@@ -441,7 +501,7 @@ export default class VersusScene extends Phaser.Scene {
       const certo = this.cartoes.findIndex((c) => c.valor === this.q.quantidade);
       if (certo >= 0) this.pintarCartao(certo, 0xffd43b);
       const msg = this.add
-        .text(this.scale.width / 2, 150 + 52 + 34, "Essa era a resposta! Próxima… 🙂", {
+        .text(this.scale.width / 2, this.yMsg, "Essa era a resposta! Próxima… 🙂", {
           fontFamily: TEMA.fonte,
           fontSize: "20px",
           color: "#ffd43b",
@@ -500,6 +560,7 @@ export default class VersusScene extends Phaser.Scene {
       p.robo.setVisible(false);
       p.bolas.forEach((b) => b.setVisible(false));
     });
+    this.paineis?.forEach((p) => p.setVisible(false));
     this.add.rectangle(0, 0, width, height, 0x000000, 0.9).setOrigin(0); // criado antes dos textos do resultado: ficam por cima
     somVitoria();
 
