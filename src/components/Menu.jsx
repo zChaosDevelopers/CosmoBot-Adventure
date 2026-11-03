@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useJogador } from "../context/JogadorContext.jsx";
 import { falar, pararFala } from "../lib/fala.js";
+import { setasEntreBotoes } from "../lib/setas.js";
 import RoboSVG from "./RoboSVG.jsx";
 
 const TEXTO_MENU =
@@ -31,8 +32,8 @@ export default function Menu({ irPara }) {
         </p>
       )}
 
-      <nav className="botoes-menu" aria-label="Opções do jogo">
-        <button className="botao botao-primario" onClick={() => irPara("avatar")}>
+      <nav className="botoes-menu" aria-label="Opções do jogo" onKeyDown={setasEntreBotoes}>
+        <button className="botao botao-primario" data-foco-inicial onClick={() => irPara("avatar")}>
           Jogar
         </button>
         <button className="botao" onClick={() => irPara("doisJogadores")}>

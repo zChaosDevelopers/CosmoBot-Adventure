@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect, useRef } from "react";
 import Menu from "./components/Menu.jsx";
 import Avatar from "./components/Avatar.jsx";
 import Instrucoes from "./components/Instrucoes.jsx";
@@ -27,6 +27,43 @@ export default function App() {
     mq?.addEventListener?.("change", aplicar);
     return () => mq?.removeEventListener?.("change", aplicar);
   }, []);
+
+  // Teclado nas telas do React: ao trocar de tela o foco se perdia (ia para o
+  // <body>) e quem usa só o teclado tinha que Tabular desde o começo. Agora o foco
+  // vai para o controle inicial da tela ([data-foco-inicial]) ou, se não houver,
+  // para o título — que o leitor de tela anuncia. Não roda no 1º carregamento
+  // nem nas telas do jogo (o canvas cuida do próprio foco).
+  const primeiraTela = useRef(true);
+  useEffect(() => {
+    if (primeiraTela.current) {
+      primeiraTela.current = false;
+      return undefined;
+    }
+    if (tela === "jogo" || tela === "versus") return undefined;
+    const id = requestAnimationFrame(() => {
+      const raiz = document.querySelector("main.app");
+      const alvo = raiz?.querySelector("[data-foco-inicial]") || raiz?.querySelector("h1, h2");
+      if (!alvo) return;
+      if (!alvo.matches("button, input, select, textarea, a[href]") && !alvo.hasAttribute("tabindex")) {
+        alvo.setAttribute("tabindex", "-1");
+      }
+      alvo.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [tela]);
+
+  // Esc volta ao menu nas telas secundárias (o jogo e o 2 jogadores tratam o Esc por conta própria).
+  useEffect(() => {
+    if (tela === "menu" || tela === "jogo" || tela === "versus") return undefined;
+    const aoTecla = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setTela("menu");
+      }
+    };
+    window.addEventListener("keydown", aoTecla);
+    return () => window.removeEventListener("keydown", aoTecla);
+  }, [tela]);
 
   // Opção escolhida com o MOUSE/toque não pode ser reativada pelo teclado: o
   // botão clicado mantém o foco, então um Enter/Espaço depois (ex.: Enter para

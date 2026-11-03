@@ -31,6 +31,7 @@ export default class FaseBase extends Phaser.Scene {
     // trava de "já estou saindo/entrando" precisa ser religada aqui — senão ela
     // volta ligada da vez anterior e congela a fase (foi o bug do mapa).
     this._saindo = false;
+    this._concluida = false; // vira true em concluirEtapa (ver salvarEstado)
     this.pausado = false; // item 13: pausa do jogo (religado aqui pelo mesmo motivo)
     this.erros = 0; // erros na pergunta ATUAL (zera a cada pergunta)
     this.errosEtapa = 0; // erros na etapa INTEIRA (para as estrelas)
@@ -84,6 +85,34 @@ export default class FaseBase extends Phaser.Scene {
   // aparelho); o botão de ajuda (❓) permite reabrir a qualquer momento.
   mostrarInstrucoes(aoComecar) {
     this._aoComecarFase = aoComecar;
+
+    // Girou o aparelho / mudou o formato da janela: a cena foi recriada para o
+    // layout novo, mas o jogador não pode perder o que já fez (ver salvarEstado).
+    const reorganizado = this.lerEstadoReorganizar();
+    if (reorganizado?.concluida) {
+      this.avancarFase(); // já tinha terminado (progresso salvo): volta ao mapa
+      return;
+    }
+    if (reorganizado?.antesDeComecar) {
+      this.abrirPopupInstrucoes(); // ainda estava lendo as instruções
+      return;
+    }
+    if (reorganizado?.rodadas) {
+      this._aoComecarFase = null;
+      aoComecar(); // monta o cenário (e gera rodadas novas, que descartamos logo abaixo)
+      this.rodadas = reorganizado.rodadas;
+      this.rodadaAtual = reorganizado.rodadaAtual;
+      this.coletados = reorganizado.coletados;
+      this.errosEtapa = reorganizado.errosEtapa;
+      this.mostrarDica = reorganizado.mostrarDica;
+      this.dicasDisponiveis = reorganizado.dicasDisponiveis;
+      this.faseInicioMs = Date.now() - reorganizado.decorrido; // o cronômetro segue de onde parou
+      this.restaurarExtra?.(reorganizado.extra);
+      pararFala();
+      this.montarRodada(); // recomeça só a conta atual, no layout novo
+      return;
+    }
+
     const chave = `cosmobot.instrucoes.${this.fase.id || this.fase.modulo || "fase"}`;
     let jaVisto = false;
     try {
@@ -102,6 +131,37 @@ export default class FaseBase extends Phaser.Scene {
       /* sem localStorage: só não persiste, segue normalmente */
     }
     this.abrirPopupInstrucoes();
+  }
+
+  // ===== Mudança de formato da tela (girar o celular, redimensionar) =====
+  // O JogoCanvas recria a cena para refazer o layout. Antes disso ele chama
+  // salvarEstado(); ao recriar, mostrarInstrucoes() lê o que foi guardado.
+  // Devolve null quando não há o que guardar.
+  salvarEstado() {
+    if (this._saindo) return null;
+    const base = { indiceFase: this.indiceFase };
+    if (this._concluida) return { ...base, concluida: true };
+    if (this._aoComecarFase) return { ...base, antesDeComecar: true };
+    if (!this.rodadas) return null;
+    return {
+      ...base,
+      rodadas: this.rodadas,
+      rodadaAtual: this.rodadaAtual,
+      coletados: this.coletados,
+      errosEtapa: this.errosEtapa,
+      mostrarDica: this.mostrarDica,
+      dicasDisponiveis: this.dicasDisponiveis,
+      decorrido: Date.now() - this.faseInicioMs,
+      extra: this.estadoExtra?.(),
+    };
+  }
+
+  // Lê (e consome) o estado guardado para ESTA fase; ignora o de outra cena.
+  lerEstadoReorganizar() {
+    const guardado = this.registry.get("estadoReorganizar");
+    this.registry.remove("estadoReorganizar");
+    if (!guardado || guardado.cena !== this.scene.key) return null;
+    return guardado.estado?.indiceFase === this.indiceFase ? guardado.estado : null;
   }
 
   abrirPopupInstrucoes() {
@@ -621,6 +681,7 @@ export default class FaseBase extends Phaser.Scene {
   // ===== Fim da etapa: comemora e vai para a próxima estação da nave =====
   concluirEtapa(mensagem) {
     this.bloqueado = true;
+    this._concluida = true;
     this.onConcluir?.({ faseId: this.fase.id, status: "concluida" });
 
     // Para o cronômetro da fase e mede o tempo total (para o brilho da badge).

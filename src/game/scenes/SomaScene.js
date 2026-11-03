@@ -244,7 +244,7 @@ export default class SomaScene extends FaseBase {
   // não dá para "mashar" Enter e juntar tudo (passar a fase) sem pensar.
   // off() antes de on() evita acumular listeners ao reabrir a fase (item 4).
   configurarTecladoNucleo() {
-    definirConfirmacaoBase(this, () => (this.pausado ? false : this.juntarProxima()));
+    definirConfirmacaoBase(this, () => (this.pausado ? false : this.juntarProxima()), { pecas: true });
     this.input.keyboard.off("keydown-BACKSPACE").on("keydown-BACKSPACE", () => {
       if (this.bloqueado) return;
       const ultima = this.nucleo?.itens?.[this.nucleo.itens.length - 1];

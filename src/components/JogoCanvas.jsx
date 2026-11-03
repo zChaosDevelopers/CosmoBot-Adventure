@@ -181,7 +181,18 @@ export default function JogoCanvas({ irPara, modo = "aventura", versus = null })
           if (!mudouDeFormato(atual, novo)) return;
           jogo.scale.setGameSize(novo.width, novo.height);
           jogo.scene.getScenes(true).forEach((cena) => {
-            if (cena.scene.key !== "BootScene") cena.scene.restart();
+            if (cena.scene.key === "BootScene") return;
+            // A cena pode guardar o progresso (fase em andamento, placar do 2
+            // jogadores) para continuar de onde parou no layout novo.
+            let estado = null;
+            try {
+              estado = cena.salvarEstado?.() ?? null;
+            } catch {
+              /* sem estado: recomeça normalmente */
+            }
+            if (estado) jogo.registry.set("estadoReorganizar", { cena: cena.scene.key, estado });
+            else jogo.registry.remove("estadoReorganizar");
+            cena.scene.restart();
           });
         }, 350);
       };

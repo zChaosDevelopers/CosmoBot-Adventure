@@ -1,7 +1,7 @@
 {
   "name": "aventuras-do-cosmobot",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "Aventuras do CosmoBot - jogo educativo de matemática (6 a 10 anos) com 5 etapas manipuláveis: contagem, soma, subtração, multiplicação e divisão",
   "scripts": {

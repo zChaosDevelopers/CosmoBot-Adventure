@@ -29,6 +29,18 @@ export default class DesafioScene extends FaseBase {
     });
   }
 
+  // Girou a tela: a vida do guardião acompanha o progresso (ver FaseBase.salvarEstado).
+  estadoExtra() {
+    return { vida: this.vida };
+  }
+
+  restaurarExtra(extra) {
+    if (!extra || typeof extra.vida !== "number") return;
+    this.vida = extra.vida;
+    this.hpTxt?.setText(`${this.vida}/${this.vidaMax}`);
+    this.hpBarra?.setScale(this.vida / this.vidaMax, 1);
+  }
+
   // Guardião + barra de vida (ficam fora de this.grupo para não sumirem a cada rodada).
   desenharGuardiao() {
     const { width } = this.scale;

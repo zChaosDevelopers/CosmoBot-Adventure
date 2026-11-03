@@ -20,6 +20,7 @@
 //   • Navegação por setas NÃO passa por aqui — só o que confirma/avança.
 
 const INTERVALO_MS = 450; // intervalo mínimo entre duas confirmações (qualquer cena)
+const INTERVALO_PECAS_MS = 220; // fases de arrastar: Enter junta uma peça por vez, então pode ser mais ágil
 const CARENCIA_MS = 350; // logo que a cena abre, ignora Enter (pode ser o da tela anterior)
 const TECLAS = ["keydown-ENTER", "keydown-SPACE"];
 
@@ -59,7 +60,7 @@ function despachar(scene, evento) {
   const r = scene.registry;
   const agora = Date.now();
   const ultima = r.get("ultimaAcaoTeclado") || 0;
-  if (agora - ultima < INTERVALO_MS) return; // rajada rápida
+  if (agora - ultima < (topo.intervalo ?? INTERVALO_MS)) return; // rajada rápida
 
   // A ação pode devolver false = "não havia nada a fazer" (ex.: nenhuma opção em
   // foco). Aí o Enter não gasta o intervalo anti-spam e o próximo vale na hora.
@@ -87,9 +88,14 @@ export function iniciarConfirmacao(scene) {
 }
 
 // Ação normal da tela (camada de baixo). Passe null para "nada a confirmar".
-export function definirConfirmacaoBase(scene, fn) {
+// opts.intervalo: tempo mínimo entre duas confirmações (ms); o padrão protege
+// ações que mudam de tela. opts.pecas = true usa o intervalo curto das fases de
+// arrastar, onde cada Enter só junta/descarta UMA peça (apertar várias vezes é o esperado).
+export function definirConfirmacaoBase(scene, fn, opts = {}) {
   if (!scene._confirmacao) iniciarConfirmacao(scene);
-  scene._confirmacao.camadas[0].fn = fn || null;
+  const base = scene._confirmacao.camadas[0];
+  base.fn = fn || null;
+  base.intervalo = opts.pecas ? INTERVALO_PECAS_MS : opts.intervalo;
 }
 
 // Coloca uma camada por cima (pop-up, pausa, "Continuar"…). Devolve a função que

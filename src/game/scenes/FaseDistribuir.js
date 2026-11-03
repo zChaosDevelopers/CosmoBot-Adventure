@@ -312,7 +312,7 @@ export default class FaseDistribuir extends FaseBase {
     this.input.keyboard.off("keydown-LEFT").on("keydown-LEFT", () => this.moverFocoZona(-1));
     // Enter/Espaço enchem a zona em foco. O anti-spam (tecla segurada, rajada) é
     // feito por teclado.js, que também garante que só UMA ação reage por Enter.
-    definirConfirmacaoBase(this, () => (this.pausado ? false : this.acaoTecladoZona()));
+    definirConfirmacaoBase(this, () => (this.pausado ? false : this.acaoTecladoZona()), { pecas: true });
     this.input.keyboard.off("keydown-BACKSPACE").on("keydown-BACKSPACE", () => this.tirarDaZona());
   }
 

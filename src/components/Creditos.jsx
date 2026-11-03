@@ -17,6 +17,12 @@ const EQUIPE = [
   { nome: "João Roberto Ursino da Cruz", papel: "Orientador do Projeto", icone: "🎓" },
 ];
 
+// Versão do jogo: injetada no build pelo vite.config.js (package.json + commit).
+/* global __APP_VERSAO__, __APP_COMMIT__, __APP_DATA__ */
+const VERSAO = typeof __APP_VERSAO__ !== "undefined" ? __APP_VERSAO__ : "dev";
+const COMMIT = typeof __APP_COMMIT__ !== "undefined" ? __APP_COMMIT__ : "";
+const DATA = typeof __APP_DATA__ !== "undefined" ? __APP_DATA__ : "";
+
 // Tela de Créditos: mostra a equipe que construiu as Aventuras do CosmoBot.
 export default function Creditos({ irPara }) {
   const { narracao } = useJogador();
@@ -46,6 +52,11 @@ export default function Creditos({ irPara }) {
       </ul>
 
       <p className="creditos-rodape">Universidade Cruzeiro do Sul</p>
+      <p className="creditos-versao" aria-label={`Versão ${VERSAO}`}>
+        Versão {VERSAO}
+        {COMMIT ? ` (${COMMIT})` : ""}
+        {DATA ? ` • ${DATA.split("-").reverse().join("/")}` : ""}
+      </p>
 
       <div className="botoes-linha">
         <button className="botao" onClick={() => irPara("menu")}>

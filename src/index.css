@@ -802,3 +802,17 @@ body.toque .opcao-switch { min-height: 56px; }
 /* Celular/tablet: o modo 2 jogadores usa botões na tela (tela dividida), então as
    teclas A S D / setas não precisam aparecer. */
 body.toque .teclas-jogador { display: none; }
+
+/* Número da versão, discreto, no fim dos Créditos. */
+.creditos-versao {
+  margin: 2px 0 0;
+  font-size: 0.85em;
+  color: #94a3b8;
+  letter-spacing: 0.3px;
+}
+
+/* Título que recebe o foco ao trocar de tela (só para o leitor de tela anunciar): sem moldura. */
+h1[tabindex="-1"]:focus,
+h2[tabindex="-1"]:focus {
+  outline: none;
+}

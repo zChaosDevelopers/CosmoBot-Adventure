@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { validarNome } from "../lib/filtroNomes.js";
+import { setasEntreBotoes } from "../lib/setas.js";
 import RoboSVG from "./RoboSVG.jsx";
 
 // Tela de preparação do MODO 2 JOGADORES.
@@ -25,6 +26,7 @@ export default function DoisJogadores({ irPara, aoComecar }) {
   const [operacao, setOperacao] = useState("misto");
 
   const [erro, setErro] = useState("");
+  const botaoComecar = useRef(null);
 
   const comecar = () => {
     // Bloqueia nomes impróprios (mesmo filtro do apelido do modo aventura).
@@ -58,8 +60,14 @@ export default function DoisJogadores({ irPara, aoComecar }) {
           setNome(e.target.value);
           setErro("");
         }}
+        onKeyDown={(e) => {
+          // Enter passa para o próximo campo (nome 1 → nome 2 → "Começar").
+          if (e.key !== "Enter") return;
+          e.preventDefault();
+          (n === 1 ? document.getElementById("nome-j2") : botaoComecar.current)?.focus();
+        }}
       />
-      <div className="cores-jogador" role="group" aria-label={`Cor do jogador ${n}`}>
+      <div className="cores-jogador" role="group" aria-label={`Cor do jogador ${n}`} onKeyDown={setasEntreBotoes}>
         {CORES.map((c) => (
           <button
             key={c}
@@ -95,7 +103,7 @@ export default function DoisJogadores({ irPara, aoComecar }) {
 
       <fieldset className="escolha-operacao">
         <legend>Qual conta vai cair?</legend>
-        <div className="opcoes-operacao">
+        <div className="opcoes-operacao" onKeyDown={setasEntreBotoes}>
           {OPERACOES.map((o) => (
             <button
               key={o.id}
@@ -117,7 +125,7 @@ export default function DoisJogadores({ irPara, aoComecar }) {
       )}
 
       <div className="botoes-menu">
-        <button className="botao botao-primario" onClick={comecar}>
+        <button ref={botaoComecar} className="botao botao-primario" onClick={comecar}>
           Começar
         </button>
         <button className="botao" onClick={() => irPara("menu")}>

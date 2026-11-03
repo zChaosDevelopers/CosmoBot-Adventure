@@ -299,7 +299,7 @@ export default class SubtracaoScene extends FaseBase {
   // O anti-spam (tecla segurada, rajada de Enter) é feito em teclado.js — assim
   // não dá para "mashar" Enter e descarregar tudo sem pensar.
   configurarTecladoDescarte() {
-    definirConfirmacaoBase(this, () => (this.pausado ? false : this.descarregarProxima()));
+    definirConfirmacaoBase(this, () => (this.pausado ? false : this.descarregarProxima()), { pecas: true });
     this.input.keyboard.off("keydown-BACKSPACE").on("keydown-BACKSPACE", () => {
       if (this.bloqueado) return;
       const ultima = this.bin?.itens?.[this.bin.itens.length - 1];

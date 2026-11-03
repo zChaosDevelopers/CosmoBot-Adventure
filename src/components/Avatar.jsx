@@ -62,10 +62,12 @@ export default function Avatar({ irPara }) {
           }
         }}
       >
-        {TEMA.coresRobo.map((cor) => (
+        {TEMA.coresRobo.map((cor, i) => (
           <button
             key={cor}
             type="button"
+            // Um grupo de opções é UMA parada do Tab (a cor escolhida); as setas andam entre as cores.
+            tabIndex={(TEMA.coresRobo.includes(avatar) ? avatar === cor : i === 0) ? 0 : -1}
             className={"avatar-opcao" + (avatar === cor ? " selecionado" : "")}
             role="radio"
             aria-checked={avatar === cor}

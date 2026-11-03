@@ -32,13 +32,12 @@ import { iniciarConfirmacao, definirConfirmacaoBase } from "../teclado.js";
 function detectarToque() {
   try {
     if (new URLSearchParams(window.location.search).get("toque") === "1") return true;
-    const grosso = window.matchMedia?.("(pointer: coarse)")?.matches || window.matchMedia?.("(any-pointer: coarse)")?.matches;
-    const temToque = (navigator.maxTouchPoints || 0) > 0;
+    // Ponteiro PRINCIPAL grosso (dedo) = celular/tablet. Notebook com tela de toque
+    // tem o mouse como principal, então segue no modo teclado. Também vale o
+    // user agent móvel e janela bem estreita (testando no PC redimensionando).
+    const grosso = window.matchMedia?.("(pointer: coarse)")?.matches;
     const aparelhoMovel = /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent || "");
-    const ladoMenor = Math.min(window.innerWidth, window.innerHeight);
-    // celular/tablet: ponteiro grosso, UA móvel, ou toque numa tela pequena/média.
-    // Janela estreita também (alguém testando no PC redimensionando a janela).
-    return !!grosso || aparelhoMovel || (temToque && ladoMenor < 1100) || window.innerWidth < 700;
+    return !!grosso || aparelhoMovel || window.innerWidth < 700;
   } catch {
     return false;
   }
@@ -92,6 +91,15 @@ export default class VersusScene extends Phaser.Scene {
     // acumular listeners se a cena for reaberta (mesmo cuidado do item 4).
     this.input.keyboard.off("keydown-ESC").on("keydown-ESC", () => this.sair());
 
+    // Girou o aparelho no meio da partida: a cena foi recriada para o layout novo,
+    // mas placar e conta continuam (ver salvarEstado). Sem pop-up de instruções.
+    const guardado = this.registry.get("estadoReorganizar");
+    this.registry.remove("estadoReorganizar");
+    if (guardado?.cena === "VersusScene" && guardado.estado?.comecou) {
+      this.restaurar(guardado.estado);
+      return;
+    }
+
     // Item 9: pop-up de instruções antes de liberar a disputa.
     const toque = this.modoToque;
     mostrarPopupInstrucoes(this, {
@@ -113,6 +121,31 @@ export default class VersusScene extends Phaser.Scene {
         );
       },
     });
+  }
+
+  // Guarda a partida para o JogoCanvas recriar a cena num layout novo. "comecou"
+  // é falso enquanto o pop-up de instruções ainda está aberto (nada a guardar).
+  salvarEstado() {
+    if (!this.jogadores) return null;
+    return {
+      comecou: !!this.q,
+      pontos: this.jogadores.map((j) => j.pontos),
+      rodadas: this.rodadas,
+      rodadaAtual: this.rodadaAtual,
+      respondido: !!this.respondido,
+      acabou: !!this._acabou,
+    };
+  }
+
+  restaurar(e) {
+    this.jogadores.forEach((j, i) => (j.pontos = e.pontos[i] || 0));
+    this.rodadas = e.rodadas;
+    this.rodadaAtual = e.rodadaAtual;
+    this.q = this.rodadas[this.rodadaAtual];
+    this.atualizarPlacar();
+    if (e.acabou) this.fim(); // já tinha terminado: mostra o resultado de novo
+    else if (e.respondido) this.proximaRodada(); // o ponto já foi dado: segue para a próxima conta
+    else this.montarRodada(); // recomeça só a conta atual (quem já errou volta a poder tentar)
   }
 
   // Medidas da tela dividida (celular/tablet): painel do J2 em cima, conta no
